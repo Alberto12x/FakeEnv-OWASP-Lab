@@ -1,0 +1,59 @@
+# Entorno virtual (especificado como .venv)
+.venv/
+venv/
+ENV/
+
+# Byte-compiled / Estructura de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Extensiones de C (si las hubiera)
+*.so
+
+# Bases de datos (excluye cualquier archivo que termine en db)
+*.db
+*.sqlite3
+
+# Caché de herramientas de Linting y Formateo
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.pyre_configuration/
+.dmypy.json
+dmypy.json
+
+# Distribución / Paquetes
+bin/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Entorno y Secretos (¡Muy importante no subirlos!)
+.env
+.venv
+env.bak
+venv.bak
+
+# Configuración de editores (Opcional pero recomendado)
+.vscode/
+.idea/
+*.swp
+*.swo
