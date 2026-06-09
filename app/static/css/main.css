@@ -1,0 +1,65 @@
+/* FakEnv — Public stylesheet */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1a1a2e;
+    background: #f5f7f2;
+    line-height: 1.6;
+}
+
+/* Navigation */
+header { background: #1b4332; color: #fff; padding: 0 2rem; }
+nav { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.brand { color: #d8f3dc; font-size: 1.4rem; font-weight: 700; text-decoration: none; }
+nav ul { list-style: none; display: flex; gap: 1.5rem; }
+nav ul a { color: #b7e4c7; text-decoration: none; font-size: 0.95rem; }
+nav ul a:hover { color: #fff; }
+
+/* Main content */
+main { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+/* Hero */
+.hero { background: #2d6a4f; color: #fff; border-radius: 12px; padding: 3rem 2rem; margin-bottom: 2rem; }
+.hero h1 { font-size: 2rem; margin-bottom: 1rem; }
+.hero p { font-size: 1.05rem; margin-bottom: 1.5rem; opacity: 0.9; }
+.btn-primary {
+    display: inline-block; background: #74c69d; color: #1b4332;
+    padding: 0.6rem 1.4rem; border-radius: 6px; text-decoration: none; font-weight: 600;
+}
+.btn-primary:hover { background: #95d5b2; }
+
+/* Cards */
+.highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+.card { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.card h2 { color: #1b4332; margin-bottom: 0.5rem; font-size: 1.1rem; }
+
+/* Alerts */
+.alert { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+.alert-success { background: #d8f3dc; color: #1b4332; }
+.alert-error { background: #ffe8e8; color: #c0392b; }
+.alert-info { background: #e8f4fd; color: #1a5276; }
+
+/* Forms */
+form { display: flex; flex-direction: column; gap: 1rem; max-width: 600px; }
+label { font-weight: 600; font-size: 0.9rem; }
+input, textarea, select {
+    border: 1px solid #ccc; border-radius: 6px; padding: 0.55rem 0.75rem;
+    font-size: 1rem; font-family: inherit; width: 100%;
+}
+input:focus, textarea:focus { outline: none; border-color: #2d6a4f; }
+button[type="submit"] {
+    background: #2d6a4f; color: #fff; border: none; border-radius: 6px;
+    padding: 0.65rem 1.5rem; font-size: 1rem; cursor: pointer; width: fit-content;
+}
+button[type="submit"]:hover { background: #1b4332; }
+
+/* Footer */
+footer { text-align: center; padding: 2rem; color: #666; font-size: 0.85rem; margin-top: 3rem; }
+
+/* Sections */
+section h1 { color: #1b4332; margin-bottom: 1rem; font-size: 1.8rem; }
+section p, section ul { color: #444; }
+section ul { padding-left: 1.5rem; }
+section ul li { margin-bottom: 0.4rem; }

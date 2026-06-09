@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio — FakEnv{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Soluciones de ingeniería para un planeta sostenible</h1>
+    <p>FakEnv es tu socio estratégico en consultoría medioambiental. Combinamos rigor técnico
+       con visión sostenible para transformar los retos ambientales de tu organización en
+       oportunidades de valor.</p>
+    <a href="{{ url_for('main.services') }}" class="btn-primary">Descubre nuestros servicios</a>
+</section>
+
+<section class="highlights">
+    <div class="card">
+        <h2>Auditorías Ambientales</h2>
+        <p>Evaluación integral del impacto ambiental de tu actividad empresarial.</p>
+    </div>
+    <div class="card">
+        <h2>Gestión de Residuos</h2>
+        <p>Diseño de planes de minimización y valorización de residuos industriales.</p>
+    </div>
+    <div class="card">
+        <h2>Huella de Carbono</h2>
+        <p>Medición, análisis y estrategias de reducción de emisiones de CO₂.</p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,1 @@
+// FakEnv — main JS placeholder

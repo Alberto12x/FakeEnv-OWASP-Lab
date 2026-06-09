@@ -1,59 +1,39 @@
-# Entorno virtual (especificado como .venv)
-.venv/
-venv/
-ENV/
-
-# Byte-compiled / Estructura de Python
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Extensiones de C (si las hubiera)
-*.so
-
-# Bases de datos (excluye cualquier archivo que termine en db)
-*.db
-*.sqlite3
-
-# Caché de herramientas de Linting y Formateo
-.ruff_cache/
-.mypy_cache/
-.pytest_cache/
-.pyre_configuration/
-.dmypy.json
-dmypy.json
-
-# Distribución / Paquetes
-bin/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
+*.pyo
+*.pyd
 *.egg-info/
-.installed.cfg
+dist/
+build/
 *.egg
-MANIFEST
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
 
-# Entorno y Secretos (¡Muy importante no subirlos!)
+# Flask / app
+instance/
+*.sqlite3
+*.db
+
+# Flask-Migrate (keep migrations/ folder but ignore compiled)
+migrations/versions/*.pyc
+
+# Environment secrets — NEVER commit
 .env
-.venv
-env.bak
-venv.bak
 
-# Configuración de editores (Opcional pero recomendado)
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

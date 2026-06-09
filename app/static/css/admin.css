@@ -1,0 +1,59 @@
+/* FakEnv — Admin stylesheet */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body.admin-layout {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 240px; min-height: 100vh;
+    background: #1b4332; color: #d8f3dc;
+    padding: 1.5rem 1rem; flex-shrink: 0;
+}
+.sidebar-brand { font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 2rem; padding: 0 0.5rem; }
+.sidebar nav ul { list-style: none; }
+.sidebar nav ul li { margin-bottom: 0.25rem; }
+.sidebar nav ul a {
+    display: block; color: #b7e4c7; text-decoration: none;
+    padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.95rem;
+}
+.sidebar nav ul a:hover { background: #2d6a4f; color: #fff; }
+
+/* Content area */
+.admin-content { flex: 1; display: flex; flex-direction: column; }
+
+.admin-header {
+    background: #fff; padding: 1rem 2rem;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.admin-header h1 { font-size: 1.4rem; color: #1b4332; }
+
+.admin-content main { padding: 2rem; }
+
+/* Stats */
+.dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+.stat-card {
+    background: #fff; border-radius: 10px; padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); text-align: center;
+}
+.stat-card h2 { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: .05em; }
+.stat-value { font-size: 2.5rem; font-weight: 700; color: #2d6a4f; margin-top: 0.5rem; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+th { background: #2d6a4f; color: #fff; padding: 0.75rem 1rem; text-align: left; font-size: 0.85rem; text-transform: uppercase; }
+td { padding: 0.75rem 1rem; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f9fbf9; }
+
+/* Alerts */
+.alert { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+.alert-success { background: #d8f3dc; color: #1b4332; }
+.alert-error { background: #ffe8e8; color: #c0392b; }
