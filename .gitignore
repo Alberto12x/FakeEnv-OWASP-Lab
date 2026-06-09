@@ -24,6 +24,7 @@ migrations/versions/*.pyc
 
 # Environment secrets — NEVER commit
 .env
+.env.example
 
 # IDE
 .vscode/
@@ -37,3 +38,13 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Formatters / linters
+.ruff
+.ruff.toml
+ruff.toml
+.flake8
+.pylintrc
+pylintrc
+setup.cfg
+pyproject.toml
