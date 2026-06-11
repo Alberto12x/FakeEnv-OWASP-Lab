@@ -18,6 +18,11 @@ ENV/
 instance/
 *.sqlite3
 *.db
+fakenv.db
+
+# User-uploaded files (keep the folder, ignore its contents)
+app/static/uploads/profiles/*
+!app/static/uploads/profiles/.gitkeep
 
 # Flask-Migrate (keep migrations/ folder but ignore compiled)
 migrations/versions/*.pyc
