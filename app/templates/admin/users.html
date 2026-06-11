@@ -4,20 +4,30 @@
 {% block page_title %}<h1>Gestión de Usuarios</h1>{% endblock %}
 
 {% block content %}
-<table>
+<table class="data-table">
     <thead>
         <tr>
             <th>ID</th>
+            <th>Usuario</th>
             <th>Nombre</th>
             <th>Email</th>
             <th>Rol</th>
-            <th>Acciones</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
+        {% for u in users %}
         <tr>
-            <td colspan="5">No hay usuarios registrados todavía.</td>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.full_name }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+            <td><a href="{{ url_for('admin.user_detail', user_id=u.id) }}">Ver</a></td>
         </tr>
+        {% else %}
+        <tr><td colspan="6">No hay usuarios registrados todavía.</td></tr>
+        {% endfor %}
     </tbody>
 </table>
 {% endblock %}

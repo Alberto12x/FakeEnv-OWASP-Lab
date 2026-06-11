@@ -7,15 +7,39 @@
 <section class="dashboard-stats">
     <div class="stat-card">
         <h2>Usuarios</h2>
-        <p class="stat-value">—</p>
+        <p class="stat-value">{{ stats.users }}</p>
     </div>
     <div class="stat-card">
-        <h2>Consultas recibidas</h2>
-        <p class="stat-value">—</p>
+        <h2>Facturas</h2>
+        <p class="stat-value">{{ stats.invoices }}</p>
     </div>
     <div class="stat-card">
-        <h2>Proyectos activos</h2>
-        <p class="stat-value">—</p>
+        <h2>Facturas pendientes</h2>
+        <p class="stat-value">{{ stats.pending_invoices }}</p>
+    </div>
+    <div class="stat-card">
+        <h2>Lecturas de telemetría</h2>
+        <p class="stat-value">{{ stats.readings }}</p>
     </div>
 </section>
+
+<h2 class="section-title">Últimas facturas</h2>
+<table class="data-table">
+    <thead>
+        <tr><th>Nº</th><th>Cliente</th><th>Emisión</th><th>Importe</th><th>Estado</th></tr>
+    </thead>
+    <tbody>
+        {% for inv in recent_invoices %}
+        <tr>
+            <td>{{ inv.invoice_number }}</td>
+            <td>{{ inv.user.full_name }}</td>
+            <td>{{ inv.issue_date.strftime('%d/%m/%Y') }}</td>
+            <td>{{ '%.2f'|format(inv.amount) }} €</td>
+            <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay facturas todavía.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

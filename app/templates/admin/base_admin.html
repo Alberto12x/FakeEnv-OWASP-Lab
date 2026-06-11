@@ -14,8 +14,14 @@
             <ul>
                 <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
                 <li><a href="{{ url_for('admin.users') }}">Usuarios</a></li>
+                <li><a href="{{ url_for('admin.invoices') }}">Facturas</a></li>
+                <li><a href="{{ url_for('admin.telemetry') }}">Telemetría</a></li>
             </ul>
         </nav>
+        <div class="sidebar-foot">
+            <a href="{{ url_for('main.index') }}">← Volver al sitio</a>
+            <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+        </div>
     </aside>
 
     <div class="admin-content">

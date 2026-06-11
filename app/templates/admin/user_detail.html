@@ -1,0 +1,38 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ user.username }} — FakEnv Admin{% endblock %}
+{% block page_title %}<h1>Usuario: {{ user.username }}</h1>{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('admin.users') }}" class="back-link">← Volver a usuarios</a>
+
+<dl class="invoice-meta">
+    <dt>ID</dt><dd>{{ user.id }}</dd>
+    <dt>Nombre completo</dt><dd>{{ user.full_name }}</dd>
+    <dt>Email</dt><dd>{{ user.email }}</dd>
+    <dt>Rol</dt><dd>{{ user.role }}</dd>
+    <dt>Dirección</dt><dd>{{ user.address }} {{ user.city }}</dd>
+    <dt>Hash de contraseña (MD5)</dt><dd><code>{{ user.password }}</code></dd>
+    <dt>Pregunta de seguridad</dt><dd>{{ user.security_question }}</dd>
+    <dt>Alta</dt><dd>{{ user.created_at.strftime('%d/%m/%Y') }}</dd>
+</dl>
+
+<h2 class="section-title">Facturas del cliente</h2>
+<table class="data-table">
+    <thead>
+        <tr><th>Nº</th><th>Emisión</th><th>Importe</th><th>Estado</th></tr>
+    </thead>
+    <tbody>
+        {% for inv in user.invoices %}
+        <tr>
+            <td>{{ inv.invoice_number }}</td>
+            <td>{{ inv.issue_date.strftime('%d/%m/%Y') }}</td>
+            <td>{{ '%.2f'|format(inv.amount) }} €</td>
+            <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">Sin facturas.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
