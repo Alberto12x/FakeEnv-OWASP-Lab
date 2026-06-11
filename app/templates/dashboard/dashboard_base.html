@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dash-wrap">
+    <nav class="dash-subnav">
+        <a href="{{ url_for('dashboard.index') }}">Resumen</a>
+        <a href="{{ url_for('dashboard.invoices') }}">Facturas</a>
+        <a href="{{ url_for('dashboard.telemetry') }}">Telemetría</a>
+        <a href="{{ url_for('dashboard.profile') }}">Perfil</a>
+    </nav>
+    <div class="dash-main">
+        {% block dash %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Mi panel — FakEnv{% endblock %}
+
+{% block dash %}
+<h1>Hola, {{ user.full_name }}</h1>
+<p class="muted">Este es el resumen de tu vivienda conectada.</p>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <h2>Factura pendiente</h2>
+        <p class="stat-value">{{ '%.2f'|format(pending_total) }} €</p>
+        {% if latest_invoice %}
+            <a href="{{ url_for('dashboard.invoice_detail', id_factura=latest_invoice.id) }}">
+                Ver última factura
+            </a>
+        {% endif %}
+    </div>
+    <div class="stat-card">
+        <h2>Agua (última lectura)</h2>
+        <p class="stat-value">
+            {% if latest.water %}{{ latest.water.value }} {{ latest.water.unit }}{% else %}—{% endif %}
+        </p>
+    </div>
+    <div class="stat-card">
+        <h2>Electricidad (última lectura)</h2>
+        <p class="stat-value">
+            {% if latest.electricity %}{{ latest.electricity.value }} {{ latest.electricity.unit }}{% else %}—{% endif %}
+        </p>
+    </div>
+    <div class="stat-card">
+        <h2>Temperatura</h2>
+        <p class="stat-value">
+            {% if latest.temperature %}{{ latest.temperature.value }} {{ latest.temperature.unit }}{% else %}—{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}

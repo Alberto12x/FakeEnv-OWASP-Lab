@@ -1,0 +1,38 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Mis facturas — FakEnv{% endblock %}
+
+{% block dash %}
+<h1>Mis facturas</h1>
+
+{% if invoices %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Nº factura</th>
+            <th>Periodo</th>
+            <th>Emisión</th>
+            <th>Importe</th>
+            <th>Estado</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inv in invoices %}
+        <tr>
+            <td>{{ inv.invoice_number }}</td>
+            <td>{{ inv.period_start.strftime('%d/%m/%Y') }} – {{ inv.period_end.strftime('%d/%m/%Y') }}</td>
+            <td>{{ inv.issue_date.strftime('%d/%m/%Y') }}</td>
+            <td>{{ '%.2f'|format(inv.amount) }} €</td>
+            <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+            <td>
+                <a href="{{ url_for('dashboard.invoice_detail', id_factura=inv.id) }}">Ver</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="muted">Todavía no tienes facturas.</p>
+{% endif %}
+{% endblock %}

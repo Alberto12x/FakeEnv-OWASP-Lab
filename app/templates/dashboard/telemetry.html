@@ -1,0 +1,41 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Telemetría — FakEnv{% endblock %}
+
+{% macro reading_table(title, rows, metric) %}
+<section class="telemetry-block">
+    <div class="telemetry-head">
+        <h2>{{ title }}</h2>
+        <a class="btn-export"
+           href="{{ url_for('dashboard.telemetry_export', metric=metric) }}">
+            Exportar CSV
+        </a>
+    </div>
+    {% if rows %}
+    <table class="data-table">
+        <thead>
+            <tr><th>Fecha</th><th>Lectura</th><th>Unidad</th></tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r.reading_date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.value }}</td>
+                <td>{{ r.unit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Sin lecturas registradas.</p>
+    {% endif %}
+</section>
+{% endmacro %}
+
+{% block dash %}
+<h1>Telemetría del hogar</h1>
+<p class="muted">Consumos diarios de los últimos 30 días.</p>
+
+{{ reading_table('Consumo de agua', data.water, 'water') }}
+{{ reading_table('Consumo eléctrico', data.electricity, 'electricity') }}
+{% endblock %}
