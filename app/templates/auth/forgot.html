@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Recuperar contraseña — FakEnv{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+    <h1>Recuperar contraseña</h1>
+    <p>Introduce tu usuario o email y te mostraremos tu pregunta de seguridad.</p>
+    <form action="{{ url_for('auth.forgot') }}" method="POST">
+        <label for="identifier">Usuario o email</label>
+        <input type="text" id="identifier" name="identifier" required autofocus>
+        <button type="submit">Continuar</button>
+    </form>
+    <p class="auth-help"><a href="{{ url_for('auth.login') }}">Volver al acceso</a></p>
+</section>
+{% endblock %}
