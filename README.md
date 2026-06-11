@@ -1,229 +1,180 @@
-# FakEnv — Web Corporativa
+# FakeEnv — Aplicación web vulnerable (TFM / OWASP)
 
-Web corporativa de **FakEnv**, empresa ficticia de consultoría de ingeniería en medio ambiente. Construida con **Python 3.11+ / Flask 3** siguiendo patrones de diseño de nivel producción.
+FakeEnv es la web de una empresa ficticia de ingeniería medioambiental que
+monitoriza la telemetría del hogar (agua, electricidad, temperatura) y la
+facturación de suministros. Está construida con **Python 3 / Flask** y un
+subsistema de blog en **Drupal 7**.
+
+> ## ⚠️ Aviso: aplicación deliberadamente insegura
+> Este proyecto se ha desarrollado como **laboratorio educativo** para un Trabajo
+> Fin de Máster sobre el **OWASP Top 10**. Contiene vulnerabilidades **a propósito**
+> (hashing MD5, IDOR, subida de archivos sin validar, ausencia de rate limiting,
+> Drupal 7 EOL…). **No la despliegues en Internet ni reutilices su código en
+> producción.** Cada punto débil está marcado en el código con un comentario que
+> empieza por `INTENTIONAL`/`INTENTIONALLY`.
 
 ---
 
 ## Tabla de contenidos
 
-1. [Descripción del proyecto](#1-descripción-del-proyecto)
-2. [Arquitectura y decisiones de diseño](#2-arquitectura-y-decisiones-de-diseño)
-3. [Estructura de carpetas](#3-estructura-de-carpetas)
-4. [Guía de inicio rápido](#4-guía-de-inicio-rápido)
-5. [Variables de entorno](#5-variables-de-entorno)
-6. [Base de datos y migraciones](#6-base-de-datos-y-migraciones)
-7. [Convenciones de desarrollo](#7-convenciones-de-desarrollo)
+1. [Vulnerabilidades incluidas](#1-vulnerabilidades-incluidas)
+2. [Arquitectura](#2-arquitectura)
+3. [Estructura del proyecto](#3-estructura-del-proyecto)
+4. [Puesta en marcha (aplicación Flask)](#4-puesta-en-marcha-aplicación-flask)
+5. [Datos de prueba y credenciales](#5-datos-de-prueba-y-credenciales)
+6. [Blog en Drupal 7 (Docker)](#6-blog-en-drupal-7-docker)
+7. [Variables de entorno](#7-variables-de-entorno)
 
 ---
 
-## 1. Descripción del proyecto
+## 1. Vulnerabilidades incluidas
 
-FakEnv ofrece servicios de auditoría ambiental, gestión de residuos y cálculo de huella de carbono. Esta aplicación sirve como:
-
-- Página pública de presentación de servicios (`/`)
-- Panel de administración interno (`/admin`)
-- Base escalable para incorporar autenticación, modelos de datos y API REST en iteraciones futuras
-
----
-
-## 2. Arquitectura y decisiones de diseño
-
-### 2.1 Application Factory (`create_app()`)
-
-Se adopta el patrón **Application Factory** definido en `app/__init__.py`. En lugar de crear la instancia de Flask en el módulo principal y usarla directamente, la factoría:
-
-- Acepta un parámetro `config_name` (`"development"` | `"production"`) para construir aplicaciones con configuraciones distintas sin tocar código.
-- Permite instanciar varias aplicaciones en el mismo proceso (imprescindible para tests de integración).
-- Evita importaciones circulares: las extensiones se instancian en `extensions.py` sin contexto de app, y se vinculan a la app en `_init_extensions()` con el patrón `extension.init_app(app)`.
-
-```
-FLASK_CONFIG=production python run.py   # arranca en modo producción
-```
-
-### 2.2 Blueprints
-
-El código de rutas y vistas se organiza en **Blueprints**, cada uno con su propio directorio de templates:
-
-| Blueprint | Prefijo URL | Responsabilidad |
-|-----------|-------------|-----------------|
-| `main`    | `/`         | Páginas públicas: inicio, nosotros, servicios, contacto |
-| `admin`   | `/admin`    | Panel interno: dashboard, gestión de usuarios |
-
-Esta separación garantiza que añadir un nuevo módulo (p. ej. `api` en `/api/v1`) no requiere modificar el código existente: basta con crear un nuevo Blueprint y registrarlo en la factoría.
-
-### 2.3 Preparación para MySQL (Flask-SQLAlchemy + Flask-Migrate)
-
-Aunque no hay modelos definidos todavía, la integración con MySQL está lista desde el día 1:
-
-- `app/extensions.py` instancia `SQLAlchemy()` y `Migrate()` **sin app** (patrón `init_app`).
-- La cadena de conexión se lee de la variable de entorno `DATABASE_URL` en `config.py`, con un valor por defecto que usa el driver `PyMySQL` (`mysql+pymysql://...`).
-- `Flask-Migrate` gestiona las migraciones Alembic. Cuando se añada el primer modelo bastará con ejecutar `flask db init && flask db migrate && flask db upgrade`.
-
-### 2.4 Configuración basada en clases
-
-`config.py` expone `DevelopmentConfig` y `ProductionConfig` que heredan de `BaseConfig`. El valor activo se selecciona a través de la variable de entorno `FLASK_CONFIG`, lo que permite cambiar el comportamiento sin tocar código.
+| Componente | Debilidad intencionada | OWASP Top 10 (2021) |
+|------------|------------------------|----------------------|
+| Login | Sin rate limiting ni MFA | A07 – Identification & Authentication Failures |
+| Contraseñas | Hash **MD5** con salt global del `.env` | A02 – Cryptographic Failures |
+| Recuperación de contraseña | Pregunta de seguridad, respuesta en texto plano | A07 |
+| Facturas | Acceso por `?id_factura=` sin comprobar propietario (**IDOR**) | A01 – Broken Access Control |
+| Foto de perfil | Subida de archivos sin `secure_filename`, sin validar tipo/tamaño | A04 / unrestricted file upload |
+| Blog | Drupal 7 (EOL desde enero de 2025) | A06 – Vulnerable & Outdated Components |
 
 ---
 
-## 3. Estructura de carpetas
+## 2. Arquitectura
+
+* **Application Factory** (`create_app()` en [app/__init__.py](app/__init__.py)): construye la
+  app a partir de un perfil de configuración y conecta las extensiones.
+* **Blueprints** independientes:
+  * `main` (`/`) — web pública.
+  * `auth` (`/login`, `/logout`, `/forgot`) — autenticación y recuperación.
+  * `dashboard` (`/dashboard`) — panel del cliente (facturas, telemetría, perfil).
+  * `admin` (`/admin`) — panel de administración con visibilidad total.
+* **Extensiones** ([app/extensions.py](app/extensions.py)): Flask-SQLAlchemy y Flask-Migrate,
+  inicializadas con el patrón `init_app`.
+* **Base de datos**: SQLite por defecto (cero configuración); MySQL opcional vía
+  `DATABASE_URL`.
+* **Blog**: Drupal 7 + MariaDB en contenedores, independiente de la app Flask.
+
+---
+
+## 3. Estructura del proyecto
 
 ```
 TFM-APP-VULNERABLE-OWASP/
-│
-├── app/                            # Paquete principal de la aplicación
-│   ├── __init__.py                 # Application Factory — create_app()
-│   ├── extensions.py               # Instancias de extensiones (db, migrate)
-│   │
+├── app/
+│   ├── __init__.py            # Application Factory
+│   ├── extensions.py          # db, migrate
+│   ├── security.py            # hashing MD5 (inseguro a propósito)
+│   ├── auth_utils.py          # sesión + decoradores login_required/admin_required
+│   ├── models/                # User, Invoice, Telemetry
 │   ├── blueprints/
-│   │   ├── main/                   # Blueprint público
-│   │   │   ├── __init__.py
-│   │   │   └── routes.py
-│   │   └── admin/                  # Blueprint administrativo
-│   │       ├── __init__.py
-│   │       └── routes.py
-│   │
-│   ├── templates/
-│   │   ├── base.html               # Layout base público
-│   │   ├── main/                   # Templates del blueprint main
-│   │   │   ├── index.html
-│   │   │   ├── about.html
-│   │   │   ├── services.html
-│   │   │   └── contact.html
-│   │   └── admin/                  # Templates del blueprint admin
-│   │       ├── base_admin.html
-│   │       ├── dashboard.html
-│   │       └── users.html
-│   │
-│   └── static/
-│       ├── css/
-│       │   ├── main.css
-│       │   └── admin.css
-│       └── js/
-│           └── main.js
-│
-├── config.py                       # Clases de configuración
-├── run.py                          # Punto de entrada
+│   │   ├── main/  auth/  dashboard/  admin/
+│   ├── templates/             # Jinja2 (público, auth, dashboard, admin)
+│   └── static/                # CSS, JS, uploads/
+├── docker/
+│   ├── docker-compose.yml     # Drupal 7 + MariaDB
+│   └── seed_blog.sh           # instala Drupal y crea el contenido del blog
+├── config.py                  # configuración por clases
+├── run.py                     # punto de entrada
+├── seed.py                    # puebla la BD con datos realistas
 ├── requirements.txt
-├── .env.example                    # Plantilla de variables de entorno
+├── .env.example
 └── README.md
 ```
 
 ---
 
-## 4. Guía de inicio rápido
+## 4. Puesta en marcha (aplicación Flask)
 
-### 4.1 Prerrequisitos
+### 4.1 Requisitos
+* Python 3.11+
+* (Opcional) Docker, sólo para el blog
 
-- Python 3.11 o superior
-- MySQL 8.0+ (o MariaDB 10.6+) en ejecución local
-- `git`
-
-### 4.2 Clonar el repositorio
-
+### 4.2 Entorno virtual e instalación
 ```bash
-git clone <url-del-repositorio>
-cd TFM-APP-VULNERABLE-OWASP
-```
-
-### 4.3 Crear y activar el entorno virtual
-
-```bash
-# Crear el entorno virtual en la carpeta .venv
 python3 -m venv .venv
-
-# Activar (Linux / macOS)
-source .venv/bin/activate
-
-# Activar (Windows PowerShell)
-.venv\Scripts\Activate.ps1
-```
-
-Cuando el entorno esté activo verás `(.venv)` al inicio del prompt.
-
-### 4.4 Instalar dependencias
-
-```bash
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4.5 Configurar las variables de entorno
-
-Copia la plantilla y edítala con tus valores:
-
-```bash
-cp .env.example .env
-```
-
-Abre `.env` y ajusta como mínimo:
-
+### 4.3 Variables de entorno (opcional)
+La aplicación arranca **sin configuración**: `config.py` trae valores por defecto
+y usa SQLite. Para personalizarla, crea un fichero `.env` en la raíz con las
+variables de la [sección 7](#7-variables-de-entorno), por ejemplo:
 ```dotenv
-SECRET_KEY=genera-una-clave-segura-aqui
-DATABASE_URL=mysql+pymysql://TU_USUARIO:TU_PASSWORD@localhost:3306/fakenv_db
+SECRET_KEY=pon-aqui-una-clave-larga-y-aleatoria
+PASSWORD_SALT=s4l7_f4k3nv_2026
 ```
-
-Para generar una `SECRET_KEY` segura:
-
+Para generar un `SECRET_KEY` fuerte:
 ```bash
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### 4.6 Crear la base de datos en MySQL
-
-```sql
-CREATE DATABASE fakenv_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'fakenv_user'@'localhost' IDENTIFIED BY 'fakenv_pass';
-GRANT ALL PRIVILEGES ON fakenv_db.* TO 'fakenv_user'@'localhost';
-FLUSH PRIVILEGES;
+### 4.4 Poblar la base de datos
+```bash
+python seed.py
 ```
+Esto crea `fakenv.db` con usuarios, facturas y 30 días de telemetría.
 
-### 4.7 Ejecutar la aplicación en modo desarrollo
+### 4.5 Arrancar
+```bash
+python run.py
+# o bien:  flask --app run.py run --debug
+```
+La aplicación queda disponible en **http://127.0.0.1:5000**.
+
+---
+
+## 5. Datos de prueba y credenciales
+
+Tras ejecutar `python seed.py`:
+
+| Usuario        | Contraseña | Rol   |
+|----------------|------------|-------|
+| `admin`        | `admin123` | admin |
+| `ana.torres`   | `password1`| user  |
+| `carlos.ruiz`  | `qwerty`   | user  |
+| `lucia.mendez` | `lucia2024`| user  |
+| `javier.gil`   | `futbol10` | user  |
+| `marta.sanz`   | `girasol`  | user  |
+
+**Demostración rápida del IDOR**: inicia sesión como `ana.torres` y visita
+`http://127.0.0.1:5000/dashboard/invoice?id_factura=7`: verás una factura que
+pertenece a `carlos.ruiz`, sin ninguna comprobación de propiedad.
+
+---
+
+## 6. Blog en Drupal 7 (Docker)
 
 ```bash
-flask --app run.py run --debug
+cd docker
+docker compose up -d
+# Espera ~30 s a que Drupal arranque y luego siembra el contenido:
+docker compose exec drupal bash /seed_blog.sh
 ```
+* Blog: **http://localhost:8080**
+* Admin de Drupal: `admin` / `admin123`
 
-La aplicación estará disponible en **http://127.0.0.1:5000**
-
-El panel de administración en **http://127.0.0.1:5000/admin**
-
----
-
-## 5. Variables de entorno
-
-| Variable        | Descripción                                   | Valor por defecto                          |
-|-----------------|-----------------------------------------------|--------------------------------------------|
-| `FLASK_APP`     | Módulo de entrada de Flask                    | `run.py`                                   |
-| `FLASK_CONFIG`  | Perfil de configuración (`development`/`production`) | `development`                   |
-| `FLASK_DEBUG`   | Activa el modo debug de Flask                 | `1`                                        |
-| `SECRET_KEY`    | Clave para firmar sesiones y CSRF tokens      | `changeme-in-production` (**cambiar siempre**) |
-| `DATABASE_URL`  | URI de conexión a MySQL vía PyMySQL           | `mysql+pymysql://fakenv_user:fakenv_pass@localhost/fakenv_db` |
+El script instala Drupal con drush y crea categorías, autores ficticios y
+artículos sobre ahorro de agua, energía geotérmica, ventanas eficientes, etc.
+El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
 
 ---
 
-## 6. Base de datos y migraciones
+## 7. Variables de entorno
 
-Una vez que se definan los modelos en `app/models/`, el flujo de migraciones es:
-
-```bash
-# Inicializar el directorio de migraciones (solo la primera vez)
-flask db init
-
-# Generar una migración a partir de los cambios en los modelos
-flask db migrate -m "descripcion del cambio"
-
-# Aplicar la migración a la base de datos
-flask db upgrade
-
-# Revertir la última migración (si es necesario)
-flask db downgrade
-```
+| Variable       | Descripción                                          | Por defecto |
+|----------------|------------------------------------------------------|-------------|
+| `FLASK_CONFIG` | Perfil (`development` / `production`)                | `development` |
+| `SECRET_KEY`   | Clave de firma de sesiones                           | inseguro de ejemplo |
+| `DATABASE_URL` | Cadena de conexión; vacío = SQLite local             | SQLite |
+| `PASSWORD_SALT`| Salt global para el hash MD5 (**débil a propósito**) | `change-this-static-salt` |
+| `BLOG_URL`     | URL del blog Drupal                                  | `http://localhost:8080` |
 
 ---
 
-## 7. Convenciones de desarrollo
-
-- **Ramas**: `main` (producción) → `dev` (integración) → `feature/<nombre>` (trabajo)
-- **Commits**: formato Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
-- **Estilo**: PEP 8, 99 caracteres por línea
-- **Nunca** commitear el archivo `.env` (ya incluido en `.gitignore`)
+## Convenciones de desarrollo
+* Ramas: `main` (estable) → `dev` (integración).
+* Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
+* Nunca se commitea `.env` ni la base de datos local.
