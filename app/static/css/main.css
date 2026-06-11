@@ -63,3 +63,88 @@ section h1 { color: #1b4332; margin-bottom: 1rem; font-size: 1.8rem; }
 section p, section ul { color: #444; }
 section ul { padding-left: 1.5rem; }
 section ul li { margin-bottom: 0.4rem; }
+
+/* ─── Nav extras ──────────────────────────────────────────────────────────── */
+.nav-blog { font-weight: 700; color: #ffd166 !important; }
+.nav-login { color: #fff !important; font-weight: 600; }
+
+/* ─── Blog CTA on landing ─────────────────────────────────────────────────── */
+.blog-cta {
+    display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+    flex-wrap: wrap; background: #081c15; color: #fff;
+    border-radius: 12px; padding: 2rem; margin-top: 2rem;
+}
+.blog-cta h2 { color: #95d5b2; margin-bottom: 0.4rem; }
+.blog-cta p { opacity: 0.9; max-width: 540px; }
+.btn-blog {
+    background: #ffd166; color: #081c15; font-weight: 700;
+    padding: 0.8rem 1.6rem; border-radius: 8px; text-decoration: none; white-space: nowrap;
+}
+.btn-blog:hover { background: #ffe49b; }
+
+/* ─── Auth cards ──────────────────────────────────────────────────────────── */
+.auth-card {
+    max-width: 420px; margin: 2rem auto; background: #fff;
+    padding: 2rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+.auth-card h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+.auth-help { margin-top: 1rem; font-size: 0.9rem; }
+.security-question { background: #f0f7f2; padding: 0.6rem 0.8rem; border-radius: 6px; font-style: italic; }
+
+/* ─── Dashboard layout ────────────────────────────────────────────────────── */
+.dash-wrap { display: grid; grid-template-columns: 200px 1fr; gap: 1.5rem; }
+.dash-subnav { display: flex; flex-direction: column; gap: 0.25rem; }
+.dash-subnav a {
+    display: block; padding: 0.6rem 0.9rem; border-radius: 8px;
+    text-decoration: none; color: #1b4332; font-weight: 600;
+}
+.dash-subnav a:hover { background: #d8f3dc; }
+.dash-main { min-width: 0; }
+.muted { color: #777; }
+.back-link { display: inline-block; margin-bottom: 1rem; color: #2d6a4f; text-decoration: none; }
+
+/* ─── Stat grid ───────────────────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.stat-card { background: #fff; border-radius: 10px; padding: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.stat-card h2 { font-size: 0.8rem; text-transform: uppercase; color: #888; letter-spacing: .04em; }
+.stat-value { font-size: 1.8rem; font-weight: 700; color: #2d6a4f; margin: 0.3rem 0; }
+
+/* ─── Data tables ─────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-top: 1rem; }
+.data-table th { background: #2d6a4f; color: #fff; padding: 0.7rem 0.9rem; text-align: left; font-size: 0.8rem; text-transform: uppercase; }
+.data-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid #f0f0f0; }
+.data-table tr:hover td { background: #f9fbf9; }
+.total-row td { background: #f0f7f2; }
+
+/* ─── Badges ──────────────────────────────────────────────────────────────── */
+.badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: capitalize; }
+.badge-paid { background: #d8f3dc; color: #1b4332; }
+.badge-pending { background: #ffe8cc; color: #b35900; }
+.badge-admin { background: #ffd6d6; color: #b00020; }
+.badge-user { background: #e0eafc; color: #1a4b8c; }
+
+/* ─── Invoice sheet ───────────────────────────────────────────────────────── */
+.invoice-sheet { background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.invoice-head { display: flex; align-items: center; justify-content: space-between; }
+.invoice-meta { display: grid; grid-template-columns: 160px 1fr; gap: 0.4rem 1rem; margin: 1rem 0; }
+.invoice-meta dt { font-weight: 700; color: #555; }
+.invoice-meta dd { margin: 0; }
+
+/* ─── Profile ─────────────────────────────────────────────────────────────── */
+.profile-grid { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+.profile-avatar { text-align: center; }
+.profile-avatar img { width: 160px; height: 160px; object-fit: cover; border-radius: 50%; }
+.avatar-placeholder { width: 160px; height: 160px; border-radius: 50%; background: #2d6a4f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 3rem; text-transform: uppercase; margin: 0 auto; }
+
+/* ─── Telemetry ───────────────────────────────────────────────────────────── */
+.telemetry-block { margin-top: 1.5rem; }
+.telemetry-head { display: flex; align-items: center; justify-content: space-between; }
+.btn-export { background: #2d6a4f; color: #fff; padding: 0.4rem 0.9rem; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.btn-export:hover { background: #1b4332; }
+
+@media (max-width: 720px) {
+    .dash-wrap { grid-template-columns: 1fr; }
+    .dash-subnav { flex-direction: row; flex-wrap: wrap; }
+    .profile-grid { grid-template-columns: 1fr; }
+    .invoice-meta { grid-template-columns: 1fr; }
+}
