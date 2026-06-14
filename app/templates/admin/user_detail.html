@@ -4,7 +4,15 @@
 {% block page_title %}<h1>Usuario: {{ user.username }}</h1>{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('admin.users') }}" class="back-link">← Volver a usuarios</a>
+<div class="detail-toolbar">
+    <a href="{{ url_for('admin.users') }}" class="back-link">← Volver a usuarios</a>
+    {% if not (current_user and current_user.id == user.id) %}
+    <form action="{{ url_for('admin.user_delete', user_id=user.id) }}" method="POST"
+          onsubmit="return confirm('¿Eliminar al usuario {{ user.username }}? Se borrarán también sus facturas, inmuebles y telemetría.');">
+        <button type="submit" class="btn-danger">Eliminar usuario</button>
+    </form>
+    {% endif %}
+</div>
 
 <dl class="invoice-meta">
     <dt>ID</dt><dd>{{ user.id }}</dd>

@@ -78,3 +78,23 @@ tr:hover td { background: #f9fbf9; }
 .invoice-meta dt { font-weight: 700; color: #555; }
 .invoice-meta dd { margin: 0; }
 .back-link { display: inline-block; margin-bottom: 1rem; color: #2d6a4f; text-decoration: none; }
+
+/* ─── Toolbar & row actions ───────────────────────────────────────────────── */
+.table-toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
+.row-actions { display: flex; align-items: center; gap: 0.75rem; }
+.row-actions form { display: inline; }
+.btn-action { background: #2d6a4f; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+.btn-action:hover { background: #1b4332; }
+.btn-danger { background: #c0392b; color: #fff; border: none; border-radius: 6px; padding: 0.35rem 0.8rem; font-size: 0.85rem; cursor: pointer; }
+.btn-danger:hover { background: #97271b; }
+
+/* ─── Admin forms ─────────────────────────────────────────────────────────── */
+.admin-form { display: flex; flex-direction: column; gap: 0.6rem; max-width: 520px; background: #fff; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.admin-form label { font-weight: 600; font-size: 0.85rem; color: #444; }
+.admin-form input, .admin-form select { border: 1px solid #ccc; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 1rem; font-family: inherit; width: 100%; }
+.admin-form input:focus, .admin-form select:focus { outline: none; border-color: #2d6a4f; }
+.admin-form button[type="submit"] { background: #2d6a4f; color: #fff; border: none; border-radius: 6px; padding: 0.6rem 1.4rem; font-size: 1rem; cursor: pointer; width: fit-content; margin-top: 0.5rem; }
+.admin-form button[type="submit"]:hover { background: #1b4332; }
+
+.detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.detail-toolbar .back-link { margin-bottom: 0; }
