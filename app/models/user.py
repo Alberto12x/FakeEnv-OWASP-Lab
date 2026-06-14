@@ -39,6 +39,9 @@ class User(db.Model):
     readings = db.relationship(
         "Telemetry", backref="user", lazy=True, cascade="all, delete-orphan"
     )
+    properties = db.relationship(
+        "Property", backref="owner", lazy=True, cascade="all, delete-orphan"
+    )
 
     @property
     def is_admin(self) -> bool:

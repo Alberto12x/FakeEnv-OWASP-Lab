@@ -11,6 +11,9 @@ class Telemetry(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    property_id = db.Column(
+        db.Integer, db.ForeignKey("properties.id"), nullable=True, index=True
+    )
 
     reading_date = db.Column(db.Date, nullable=False, index=True)
     metric = db.Column(db.String(20), nullable=False, index=True)
