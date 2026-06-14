@@ -20,17 +20,17 @@ random.seed(2026)  # reproducible data set
 
 # username, email, password, name, surname, role, address, city, question, answer
 ACCOUNTS = [
-    ("admin", "admin@fakenv.com", "admin123", "Admin", "FakEnv", "admin",
+    ("admin", "admin@fakenv.com", "admin", "Admin", "FakEnv", "admin",
      "Calle Mayor 1", "Madrid", "¿Cuál es el nombre de tu padre?", "Manuel"),
-    ("ana.torres", "ana.torres@example.com", "password1", "Ana", "Torres", "user",
+    ("ana.torres", "ana.torres@example.com", "ana", "Ana", "Torres", "user",
      "Av. del Sol 22", "Sevilla", "¿Cuál es el nombre de tu padre?", "Antonio"),
-    ("carlos.ruiz", "carlos.ruiz@example.com", "qwerty", "Carlos", "Ruiz", "user",
+    ("carlos.ruiz", "carlos.ruiz@example.com", "carlos", "Carlos", "Ruiz", "user",
      "Calle Luna 5", "Valencia", "¿Cuál es el nombre de tu padre?", "Jose"),
-    ("lucia.mendez", "lucia.mendez@example.com", "lucia2024", "Lucía", "Méndez", "user",
+    ("lucia.mendez", "lucia.mendez@example.com", "lucia", "Lucía", "Méndez", "user",
      "Plaza Verde 8", "Bilbao", "¿Cuál es el nombre de tu primera mascota?", "Toby"),
-    ("javier.gil", "javier.gil@example.com", "futbol10", "Javier", "Gil", "user",
+    ("javier.gil", "javier.gil@example.com", "javier", "Javier", "Gil", "user",
      "Camino Real 14", "Zaragoza", "¿En qué ciudad naciste?", "Huesca"),
-    ("marta.sanz", "marta.sanz@example.com", "girasol", "Marta", "Sanz", "user",
+    ("marta.sanz", "marta.sanz@example.com", "marta", "Marta", "Sanz", "user",
      "Calle Olivo 3", "Granada", "¿Cuál es el nombre de tu padre?", "Pedro"),
 ]
 

@@ -132,12 +132,12 @@ Tras ejecutar `python seed.py`:
 
 | Usuario        | Contraseña | Rol   |
 |----------------|------------|-------|
-| `admin`        | `admin123` | admin |
-| `ana.torres`   | `password1`| user  |
-| `carlos.ruiz`  | `qwerty`   | user  |
-| `lucia.mendez` | `lucia2024`| user  |
-| `javier.gil`   | `futbol10` | user  |
-| `marta.sanz`   | `girasol`  | user  |
+| `admin`        | `admin`    | admin |
+| `ana.torres`   | `ana`      | user  |
+| `carlos.ruiz`  | `carlos`   | user  |
+| `lucia.mendez` | `lucia`    | user  |
+| `javier.gil`   | `javier`   | user  |
+| `marta.sanz`   | `marta`    | user  |
 
 **Demostración rápida del IDOR**: inicia sesión como `ana.torres` y visita
 `http://127.0.0.1:5000/dashboard/invoice?id_factura=7`: verás una factura que
