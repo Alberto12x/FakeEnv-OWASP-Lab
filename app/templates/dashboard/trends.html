@@ -1,0 +1,70 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Tendencias de consumo — FakEnv{% endblock %}
+
+{% macro trend_chart(label, s) %}
+<div class="chart-card">
+    <div class="chart-head">
+        <h3>{{ label }}</h3>
+        {% if s %}
+            {% if s.change > 1 %}
+                <span class="trend trend-up">▲ +{{ '%.1f'|format(s.change) }}%</span>
+            {% elif s.change < -1 %}
+                <span class="trend trend-down">▼ {{ '%.1f'|format(s.change) }}%</span>
+            {% else %}
+                <span class="trend trend-flat">► estable</span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if s %}
+    <svg class="chart-svg" viewBox="0 0 {{ s.width }} {{ s.height }}" preserveAspectRatio="none"
+         role="img" aria-label="Evolución de {{ label }}">
+        <polygon points="{{ s.area }}" fill="{{ s.color }}" fill-opacity="0.12"></polygon>
+        <polyline points="{{ s.line }}" fill="none" stroke="{{ s.color }}" stroke-width="2"></polyline>
+        <circle cx="{{ '%.1f'|format(s.last_x) }}" cy="{{ '%.1f'|format(s.last_y) }}"
+                r="3.5" fill="{{ s.color }}"></circle>
+    </svg>
+
+    <div class="chart-dates">
+        <span>{{ s.first_date.strftime('%d/%m/%Y') }}</span>
+        <span>{{ s.last_date.strftime('%d/%m/%Y') }}</span>
+    </div>
+
+    <ul class="chart-stats">
+        <li><span>Media</span><strong>{{ '%.2f'|format(s.avg) }} {{ s.unit }}</strong></li>
+        <li><span>Máx</span><strong>{{ '%.2f'|format(s.max) }} {{ s.unit }}</strong></li>
+        <li><span>Total</span><strong>{{ '%.1f'|format(s.total) }} {{ s.unit }}</strong></li>
+    </ul>
+    {% else %}
+    <p class="muted">Sin lecturas para este inmueble.</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% block dash %}
+<h1>Tendencias de consumo</h1>
+<p class="muted">Evolución diaria del consumo en cada uno de tus inmuebles.</p>
+
+{% for item in properties %}
+<section class="property-block">
+    <header class="property-head">
+        <div>
+            <h2>{{ item.property.alias }}</h2>
+            <p class="muted">
+                {{ item.property.property_type }} · {{ item.property.address }},
+                {{ item.property.city }} · {{ item.property.size_m2 }} m²
+            </p>
+        </div>
+    </header>
+
+    <div class="chart-grid">
+        {% for chart in item.charts %}
+            {{ trend_chart(chart.label, chart.series) }}
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+<p class="muted">Todavía no tienes inmuebles asociados a tu cuenta.</p>
+{% endfor %}
+{% endblock %}

@@ -117,6 +117,84 @@ def profile():
     return render_template("dashboard/profile.html", user=user)
 
 
+def _build_series(rows, unit, color, width=560, height=150, pad=24):
+    """Turn an ascending list of readings into SVG geometry + summary stats.
+
+    Everything is computed server-side (no JS charting library) so the template
+    only has to draw a <polyline> and a <polygon>.
+    """
+    values = [r.value for r in rows]
+    if not values:
+        return None
+
+    n = len(values)
+    vmin, vmax = min(values), max(values)
+    span = (vmax - vmin) or 1
+    base_y = height - pad
+    usable_h = height - 2 * pad
+    step = (width - 2 * pad) / max(n - 1, 1)
+
+    points = []
+    for i, v in enumerate(values):
+        x = pad + i * step
+        y = base_y - (v - vmin) / span * usable_h
+        points.append((x, y))
+
+    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    area = (
+        f"{pad:.1f},{base_y:.1f} {line} "
+        f"{pad + (n - 1) * step:.1f},{base_y:.1f}"
+    )
+
+    # Trend: average of the most recent half vs. the older half.
+    half = max(n // 2, 1)
+    recent_avg = sum(values[-half:]) / len(values[-half:])
+    prev_avg = sum(values[:half]) / len(values[:half])
+    change = 0.0 if prev_avg == 0 else (recent_avg - prev_avg) / prev_avg * 100
+
+    return {
+        "line": line,
+        "area": area,
+        "last_x": points[-1][0],
+        "last_y": points[-1][1],
+        "width": width,
+        "height": height,
+        "color": color,
+        "unit": unit,
+        "avg": sum(values) / n,
+        "max": vmax,
+        "min": vmin,
+        "total": sum(values),
+        "change": change,
+        "first_date": rows[0].reading_date,
+        "last_date": rows[-1].reading_date,
+        "count": n,
+    }
+
+
+@dashboard_bp.route("/trends")
+@login_required
+def trends():
+    user = current_user()
+    metrics = [
+        ("electricity", "Electricidad", "kWh", "#e76f51"),
+        ("water", "Agua", "m³", "#2a9d8f"),
+    ]
+    properties = []
+    for prop in user.properties:
+        charts = []
+        for metric, label, unit, color in metrics:
+            rows = (
+                Telemetry.query.filter_by(property_id=prop.id, metric=metric)
+                .order_by(Telemetry.reading_date.asc())
+                .all()
+            )
+            charts.append({"label": label, "series": _build_series(rows, unit, color)})
+        properties.append({"property": prop, "charts": charts})
+
+    return render_template("dashboard/trends.html", properties=properties)
+
+
 @dashboard_bp.route("/telemetry")
 @login_required
 def telemetry():

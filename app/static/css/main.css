@@ -148,3 +148,22 @@ section ul li { margin-bottom: 0.4rem; }
     .profile-grid { grid-template-columns: 1fr; }
     .invoice-meta { grid-template-columns: 1fr; }
 }
+
+/* ─── Consumption trends ──────────────────────────────────────────────────── */
+.property-block { background: #fff; border-radius: 12px; padding: 1.25rem 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-top: 1.5rem; }
+.property-head { border-bottom: 1px solid #eee; padding-bottom: 0.75rem; margin-bottom: 1rem; }
+.property-head h2 { color: #1b4332; font-size: 1.2rem; }
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
+.chart-card { border: 1px solid #f0f0f0; border-radius: 10px; padding: 1rem; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.chart-head h3 { font-size: 1rem; color: #333; }
+.chart-svg { width: 100%; height: 150px; display: block; }
+.chart-dates { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
+.chart-stats { list-style: none; display: flex; gap: 1rem; padding: 0.75rem 0 0; margin: 0.5rem 0 0; border-top: 1px solid #f3f3f3; }
+.chart-stats li { display: flex; flex-direction: column; font-size: 0.8rem; }
+.chart-stats span { color: #999; }
+.chart-stats strong { color: #1b4332; font-size: 0.95rem; }
+.trend { font-size: 0.8rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; }
+.trend-up { background: #fdecea; color: #c0392b; }
+.trend-down { background: #e6f4ea; color: #1b7d3e; }
+.trend-flat { background: #eef0f2; color: #667; }
