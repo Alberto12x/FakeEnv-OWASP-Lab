@@ -36,6 +36,7 @@ subsistema de blog en **Drupal 7**.
 | Recuperación de contraseña | Pregunta de seguridad, respuesta en texto plano | A07 |
 | Facturas | Acceso por `?id_factura=` sin comprobar propietario (**IDOR**) | A01 – Broken Access Control |
 | Foto de perfil | Subida de archivos sin `secure_filename`, sin validar tipo/tamaño | A04 / unrestricted file upload |
+| Raíz del proyecto | Cualquier archivo servible como texto (`/.env`, `/config.py`…) y path traversal | A05 – Security Misconfiguration |
 | Blog | Drupal 7 (EOL desde enero de 2025) | A06 – Vulnerable & Outdated Components |
 
 ---
