@@ -8,6 +8,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 
 from app.blueprints.admin import admin_bp
 from app.auth_utils import admin_required, current_user
+from app.constants import SECURITY_QUESTIONS
 from app.extensions import db
 from app.models import Invoice, Telemetry, User
 from app.security import hash_password
@@ -47,14 +48,22 @@ def user_new():
 
         if not username or not email or not password:
             flash("Usuario, email y contraseña son obligatorios.", "error")
-            return render_template("admin/user_form.html", form=request.form)
+            return render_template(
+                "admin/user_form.html",
+                form=request.form,
+                security_questions=SECURITY_QUESTIONS,
+            )
 
         # Reject duplicates on the unique columns to avoid a DB integrity error.
         if User.query.filter(
             (User.username == username) | (User.email == email)
         ).first():
             flash("Ya existe un usuario con ese nombre o email.", "error")
-            return render_template("admin/user_form.html", form=request.form)
+            return render_template(
+                "admin/user_form.html",
+                form=request.form,
+                security_questions=SECURITY_QUESTIONS,
+            )
 
         user = User(
             username=username,
@@ -73,7 +82,9 @@ def user_new():
         flash(f"Usuario «{user.username}» creado correctamente.", "success")
         return redirect(url_for("admin.users"))
 
-    return render_template("admin/user_form.html", form={})
+    return render_template(
+        "admin/user_form.html", form={}, security_questions=SECURITY_QUESTIONS
+    )
 
 
 @admin_bp.route("/users/<int:user_id>")

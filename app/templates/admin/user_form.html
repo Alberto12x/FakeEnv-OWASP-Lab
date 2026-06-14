@@ -35,7 +35,13 @@
     <input type="text" id="city" name="city" value="{{ form.get('city', '') }}">
 
     <label for="security_question">Pregunta de seguridad</label>
-    <input type="text" id="security_question" name="security_question" value="{{ form.get('security_question', '') }}">
+    <select id="security_question" name="security_question">
+        {% for question in security_questions %}
+        <option value="{{ question }}" {% if form.get('security_question') == question %}selected{% endif %}>
+            {{ question }}
+        </option>
+        {% endfor %}
+    </select>
 
     <label for="security_answer">Respuesta de seguridad</label>
     <input type="text" id="security_answer" name="security_answer" value="{{ form.get('security_answer', '') }}">
