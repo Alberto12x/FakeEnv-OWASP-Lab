@@ -2,7 +2,7 @@
 #
 # One-time installer + content seeder for the FakeEnv Drupal 7 blog.
 # Run INSIDE the drupal container:
-#   docker compose exec drupal bash /seed_blog.sh
+#   docker compose exec drupal bash /seed/seed_blog.sh
 #
 # It installs Drupal with drush, then creates categories, dummy authors and a
 # set of realistic environmental articles.
@@ -23,9 +23,14 @@ fi
 # ── 1b. Install the MySQL client (drush needs it to create the database) ──────
 if ! command -v mysql >/dev/null 2>&1; then
     echo "→ Instalando el cliente MySQL..."
-    apt-get update -qq
-    apt-get install -y -qq default-mysql-client >/dev/null \
-        || apt-get install -y -qq mariadb-client >/dev/null
+    apt-get update -qq || true
+    apt-get install -y -qq default-mysql-client >/dev/null 2>&1 \
+        || apt-get install -y -qq mariadb-client >/dev/null 2>&1 \
+        || apt-get install -y -qq mysql-client >/dev/null 2>&1 || true
+fi
+if ! command -v mysql >/dev/null 2>&1; then
+    echo "✗ No se pudo instalar el cliente MySQL en el contenedor." >&2
+    exit 1
 fi
 
 cd "$DOCROOT"

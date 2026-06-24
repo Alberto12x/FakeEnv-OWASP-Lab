@@ -152,7 +152,7 @@ pertenece a `carlos.ruiz`, sin ninguna comprobación de propiedad.
 cd docker
 docker compose up -d
 # Espera ~30 s a que Drupal arranque y luego siembra el contenido:
-docker compose exec drupal bash /seed_blog.sh
+docker compose exec drupal bash /seed/seed_blog.sh
 ```
 * Blog: **http://localhost:8080**
 * Admin de Drupal: `admin` / `admin123`

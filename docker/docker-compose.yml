@@ -7,7 +7,7 @@
 # Usage:
 #   cd docker
 #   docker compose up -d
-#   docker compose exec drupal bash /seed_blog.sh   # one-time content seeding
+#   docker compose exec drupal bash /seed/seed_blog.sh   # one-time content seeding
 #   open http://localhost:8080   (admin / admin123)
 
 services:
@@ -32,7 +32,9 @@ services:
       - "8080:80"
     volumes:
       - drupal_files:/var/www/html/sites/default/files
-      - ./seed_blog.sh:/seed_blog.sh:ro
+      # Mount the whole docker/ dir (not a single file) so edits to seed_blog.sh
+      # are reflected live inside the container.
+      - ./:/seed:ro
     restart: unless-stopped
 
 volumes:
