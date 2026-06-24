@@ -35,9 +35,12 @@ subsistema de blog en **Drupal 7**.
 | Contraseñas | Hash **MD5** con salt global del `.env` | A02 – Cryptographic Failures |
 | Recuperación de contraseña | Pregunta de seguridad, respuesta en texto plano | A07 |
 | Facturas | Acceso por `?id_factura=` sin comprobar propietario (**IDOR**) | A01 – Broken Access Control |
+| Telemetría | Filtro de fechas con excepción mal controlada (*fail-open*): una fecha inválida ignora el filtro `user_id` y vuelca la telemetría de todos los usuarios | A01 – Broken Access Control |
+| Perfil (mensaje) | **SSTI** vía `render_template_string` sobre datos del usuario | A03 – Injection |
 | Foto de perfil | Subida de archivos sin `secure_filename`, sin validar tipo/tamaño | A04 / unrestricted file upload |
 | Raíz del proyecto | Cualquier archivo servible como texto (`/.env`, `/config.py`…) y path traversal | A05 – Security Misconfiguration |
-| Blog | Drupal 7.30 (EOL + SQLi Drupalgeddon SA-CORE-2014-005) | A06 – Vulnerable & Outdated Components / A03 – Injection |
+| Modo debug | Con `FLASK_DEBUG=1`, cualquier excepción muestra el depurador de Werkzeug (código fuente + consola = RCE) | A05 – Security Misconfiguration |
+| Blog | Drupal 7.30 (EOL): SQLi *Drupalgeddon* (SA-CORE-2014-005) y RCE *Drupalgeddon2* (CVE-2018-7600) | A06 – Vulnerable & Outdated Components / A03 – Injection |
 
 ---
 
@@ -73,7 +76,8 @@ TFM-APP-VULNERABLE-OWASP/
 │   ├── templates/             # Jinja2 (público, auth, dashboard, admin)
 │   └── static/                # CSS, JS, uploads/
 ├── docker/
-│   ├── docker-compose.yml     # Drupal 7 + MariaDB
+│   ├── Dockerfile.drupal      # imagen PHP 5.6 + Drupal 7.30
+│   ├── docker-compose.yml     # Drupal 7.30 + MariaDB
 │   └── seed_blog.sh           # instala Drupal y crea el contenido del blog
 ├── config.py                  # configuración única (lee el entorno)
 ├── run.py                     # punto de entrada
@@ -149,27 +153,47 @@ pertenece a `carlos.ruiz`, sin ninguna comprobación de propiedad.
 ## 6. Blog en Drupal 7 (Docker)
 
 Se construye una imagen propia con **Drupal 7.30 sobre PHP 5.6**
-([docker/Dockerfile.drupal](docker/Dockerfile.drupal)). Esa versión es anterior
-a 7.32, por lo que es vulnerable a **SA-CORE-2014-005 («Drupalgeddon»,
-CVE-2014-3704)**, la inyección SQL de core (OWASP A03). Por eso no se usa la
-imagen oficial `drupal:7`, que trae la última versión sobre PHP 8.
+([docker/Dockerfile.drupal](docker/Dockerfile.drupal)). Esa versión (anterior a
+7.32 y a 7.58) es vulnerable a **Drupalgeddon** (SA-CORE-2014-005, SQLi) y a
+**Drupalgeddon2** (CVE-2018-7600, RCE no autenticado). Por eso no se usa la
+imagen oficial `drupal:7`, que trae la última versión sobre PHP 8 (donde 7.30 ni
+siquiera arranca).
+
+### Puesta en marcha
 
 ```bash
 cd docker
-docker compose up -d --build
-# Espera ~30 s a que Drupal arranque y luego siembra el contenido:
+docker compose up -d --build          # construye la imagen (1ª vez tarda 1-2 min)
+# Espera a que Drupal arranque y siembra Drupal + el contenido del blog:
 docker compose exec drupal bash /seed/seed_blog.sh
 ```
+El script instala Drupal con drush (creando la BD, instalando el cliente MySQL y
+silenciando el correo) y crea categorías, autores ficticios y artículos sobre
+ahorro de agua, energía geotérmica, ventanas eficientes, etc. Al terminar imprime
+la versión de Drupal y el número de artículos.
+
 * Blog: **http://localhost:8080**
 * Admin de Drupal: `admin` / `admin123`
+* El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
 
-El script instala Drupal con drush y crea categorías, autores ficticios y
-artículos sobre ahorro de agua, energía geotérmica, ventanas eficientes, etc.
-El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
+La instalación (`settings.php` y ficheros) se guarda en el volumen `drupal_data`,
+así que **sobrevive** a reconstrucciones y reinicios. Para empezar de cero (otra
+versión, instalación limpia) hay que borrar los volúmenes:
+```bash
+docker compose down -v && docker compose up -d --build
+docker compose exec drupal bash /seed/seed_blog.sh
+```
 
-> Si ya habías levantado el blog con otra versión, elimina los volúmenes antes
-> de reconstruir para forzar una instalación limpia:
-> `docker compose down -v && docker compose up -d --build`.
+### Comprobar la versión
+
+Desde el navegador, `http://localhost:8080/CHANGELOG.txt` (la 1ª línea es
+`Drupal 7.30, …`), o por terminal: `docker compose exec drupal drush status`.
+
+### Explotación (Drupalgeddon2)
+
+La RCE se demostró con Metasploit (`exploit/unix/webapp/drupal_drupalgeddon2`):
+`RHOSTS 127.0.0.1`, `RPORT 8080`, `TARGETURI /`, `PHP_FUNC passthru` → sesión
+Meterpreter como `www-data` dentro del contenedor.
 
 ---
 
