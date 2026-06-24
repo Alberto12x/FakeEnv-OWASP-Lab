@@ -34,7 +34,9 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - drupal_files:/var/www/html/sites/default/files
+      # Persist sites/default (settings.php + uploaded files) so the install
+      # survives image rebuilds and container recreation.
+      - drupal_data:/var/www/html/sites/default
       # Mount the whole docker/ dir (not a single file) so edits to seed_blog.sh
       # are reflected live inside the container.
       - ./:/seed:ro
@@ -42,4 +44,4 @@ services:
 
 volumes:
   drupal_db_data:
-  drupal_files:
+  drupal_data:
