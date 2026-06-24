@@ -167,3 +167,9 @@ section ul li { margin-bottom: 0.4rem; }
 .trend-up { background: #fdecea; color: #c0392b; }
 .trend-down { background: #e6f4ea; color: #1b7d3e; }
 .trend-flat { background: #eef0f2; color: #667; }
+
+/* ─── Filtro de telemetría ────────────────────────────────────────────────── */
+.filter-form { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin: 1rem 0; max-width: none; }
+.filter-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; }
+.filter-form input { width: 180px; }
+.filter-form button { width: fit-content; }

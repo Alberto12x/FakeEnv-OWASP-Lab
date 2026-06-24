@@ -197,15 +197,37 @@ def trends():
 @login_required
 def telemetry():
     user = current_user()
-    data = {}
-    for metric in ("water", "electricity"):
-        data[metric] = (
-            Telemetry.query.filter_by(user_id=user.id, metric=metric)
-            .order_by(Telemetry.reading_date.desc())
-            .limit(30)
-            .all()
-        )
-    return render_template("dashboard/telemetry.html", data=data)
+    desde = request.args.get("desde", "2000-01-01")
+    hasta = request.args.get("hasta", "2100-01-01")
+
+    # VULNERABILIDAD SQLi (OWASP A03): las fechas del filtro se concatenan tal cual
+    # en el SQL, sin parametrizar. Un valor malicioso (p. ej.  2100-01-01' OR '1'='1)
+    # rompe el WHERE —incluida la restricción t.user_id— y vuelca la telemetría de
+    # TODOS los usuarios. La consulta se ejecuta cruda contra el driver.
+    sql = (
+        "SELECT u.username, t.metric, t.reading_date, t.value, t.unit "
+        "FROM telemetry t JOIN users u ON u.id = t.user_id "
+        f"WHERE t.user_id = {user.id} "
+        f"AND t.reading_date >= '{desde}' "
+        f"AND t.reading_date <= '{hasta}' "
+        "ORDER BY t.reading_date DESC"
+    )
+
+    error = None
+    rows = []
+    try:
+        rows = db.session.connection().exec_driver_sql(sql).fetchall()
+    except Exception as exc:  # noqa: BLE001 — se muestra el error de SQL (info leak)
+        error = str(exc)
+
+    return render_template(
+        "dashboard/telemetry.html",
+        rows=rows,
+        desde=desde,
+        hasta=hasta,
+        error=error,
+        sql=sql,
+    )
 
 
 @dashboard_bp.route("/telemetry/export")
