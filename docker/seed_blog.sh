@@ -20,6 +20,14 @@ if [ ! -x "$DRUSH" ]; then
     chmod +x "$DRUSH"
 fi
 
+# ── 1b. Install the MySQL client (drush needs it to create the database) ──────
+if ! command -v mysql >/dev/null 2>&1; then
+    echo "→ Instalando el cliente MySQL..."
+    apt-get update -qq
+    apt-get install -y -qq default-mysql-client >/dev/null \
+        || apt-get install -y -qq mariadb-client >/dev/null
+fi
+
 cd "$DOCROOT"
 
 # ── 2. Wait for the database to accept connections ───────────────────────────
@@ -31,8 +39,15 @@ done
 # ── 3. Install Drupal (standard profile) if not already installed ────────────
 if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
     echo "→ Instalando Drupal 7..."
+    # Remove any half-written settings from a previous failed attempt.
+    chmod -R u+w sites/default 2>/dev/null || true
+    rm -f sites/default/settings.php
+    # --db-su lets drush create the database as root (the 'drupal' user has no
+    # privilege to CREATE DATABASE).
     "$DRUSH" -y site-install standard \
         --db-url="mysql://drupal:drupal@drupal_db/drupal" \
+        --db-su=root \
+        --db-su-pw=root \
         --site-name="FakeEnv Blog" \
         --account-name=admin \
         --account-pass=admin123 \
