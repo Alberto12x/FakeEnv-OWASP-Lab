@@ -44,7 +44,14 @@ def _register_context(app: Flask) -> None:
     @app.context_processor
     def inject_globals():
         # Makes `current_user` and `blog_url` available in every Jinja template.
+        # Swallowing errors here (returning None) keeps templates rendering even
+        # with a malformed session — which is what lets the fail-open auth
+        # bypass in auth_utils actually reach the protected page.
+        try:
+            user = current_user()
+        except Exception:
+            user = None
         return {
-            "current_user": current_user(),
+            "current_user": user,
             "blog_url": app.config["BLOG_URL"],
         }
