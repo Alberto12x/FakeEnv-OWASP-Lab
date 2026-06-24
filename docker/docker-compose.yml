@@ -24,7 +24,10 @@ services:
     restart: unless-stopped
 
   drupal:
-    image: drupal:7
+    build:
+      context: .
+      dockerfile: Dockerfile.drupal
+    image: fakenv/drupal7.30
     container_name: fakenv_drupal
     depends_on:
       - drupal_db

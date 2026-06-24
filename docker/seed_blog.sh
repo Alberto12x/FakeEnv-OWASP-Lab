@@ -12,10 +12,10 @@ set -e
 DRUSH=/usr/local/bin/drush
 DOCROOT=/var/www/html
 
-# ── 1. Install drush 8 (the last release that supports Drupal 7) ──────────────
+# ── 1. Install drush 8 (8.1.18 still runs on the PHP 5.6 base) ────────────────
 if [ ! -x "$DRUSH" ]; then
     echo "→ Instalando drush 8..."
-    php -r "copy('https://github.com/drush-ops/drush/releases/download/8.4.12/drush.phar', '/tmp/drush.phar');"
+    php -r "copy('https://github.com/drush-ops/drush/releases/download/8.1.18/drush.phar', '/tmp/drush.phar');"
     mv /tmp/drush.phar "$DRUSH"
     chmod +x "$DRUSH"
 fi
@@ -53,6 +53,9 @@ if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
     # Remove any half-written settings from a previous failed attempt.
     chmod -R u+w sites/default 2>/dev/null || true
     rm -f sites/default/settings.php
+    # Make the files directory (a Docker named volume) writable by Apache.
+    mkdir -p sites/default/files
+    chmod -R 0777 sites/default/files
     # --db-su lets drush create the database as root (the 'drupal' user has no
     # privilege to CREATE DATABASE). '|| true' keeps a harmless non-zero exit
     # (e.g. a mail warning) from aborting the script under 'set -e'.

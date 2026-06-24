@@ -37,7 +37,7 @@ subsistema de blog en **Drupal 7**.
 | Facturas | Acceso por `?id_factura=` sin comprobar propietario (**IDOR**) | A01 – Broken Access Control |
 | Foto de perfil | Subida de archivos sin `secure_filename`, sin validar tipo/tamaño | A04 / unrestricted file upload |
 | Raíz del proyecto | Cualquier archivo servible como texto (`/.env`, `/config.py`…) y path traversal | A05 – Security Misconfiguration |
-| Blog | Drupal 7 (EOL desde enero de 2025) | A06 – Vulnerable & Outdated Components |
+| Blog | Drupal 7.30 (EOL + SQLi Drupalgeddon SA-CORE-2014-005) | A06 – Vulnerable & Outdated Components / A03 – Injection |
 
 ---
 
@@ -148,9 +148,15 @@ pertenece a `carlos.ruiz`, sin ninguna comprobación de propiedad.
 
 ## 6. Blog en Drupal 7 (Docker)
 
+Se construye una imagen propia con **Drupal 7.30 sobre PHP 5.6**
+([docker/Dockerfile.drupal](docker/Dockerfile.drupal)). Esa versión es anterior
+a 7.32, por lo que es vulnerable a **SA-CORE-2014-005 («Drupalgeddon»,
+CVE-2014-3704)**, la inyección SQL de core (OWASP A03). Por eso no se usa la
+imagen oficial `drupal:7`, que trae la última versión sobre PHP 8.
+
 ```bash
 cd docker
-docker compose up -d
+docker compose up -d --build
 # Espera ~30 s a que Drupal arranque y luego siembra el contenido:
 docker compose exec drupal bash /seed/seed_blog.sh
 ```
@@ -160,6 +166,10 @@ docker compose exec drupal bash /seed/seed_blog.sh
 El script instala Drupal con drush y crea categorías, autores ficticios y
 artículos sobre ahorro de agua, energía geotérmica, ventanas eficientes, etc.
 El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
+
+> Si ya habías levantado el blog con otra versión, elimina los volúmenes antes
+> de reconstruir para forzar una instalación limpia:
+> `docker compose down -v && docker compose up -d --build`.
 
 ---
 
