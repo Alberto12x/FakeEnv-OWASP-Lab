@@ -4,16 +4,25 @@
 
 {% block dash %}
 <h1>Telemetría del hogar</h1>
-<p class="muted">Filtra tus lecturas por rango de fechas (formato AAAA-MM-DD).</p>
+<p class="muted">Filtra tus lecturas por rango de fechas (formato DD/MM/AAAA) y métrica.</p>
 
 <form method="GET" action="{{ url_for('dashboard.telemetry') }}" class="filter-form">
     <label>Desde
-        <input type="text" name="desde" value="{{ desde }}" placeholder="AAAA-MM-DD">
+        <input type="text" name="desde" value="{{ desde }}" placeholder="DD/MM/AAAA">
     </label>
     <label>Hasta
-        <input type="text" name="hasta" value="{{ hasta }}" placeholder="AAAA-MM-DD">
+        <input type="text" name="hasta" value="{{ hasta }}" placeholder="DD/MM/AAAA">
+    </label>
+    <label>Métrica
+        <select name="metrica">
+            <option value="" {% if not metrica %}selected{% endif %}>Todas</option>
+            <option value="water" {% if metrica == 'water' %}selected{% endif %}>Agua</option>
+            <option value="electricity" {% if metrica == 'electricity' %}selected{% endif %}>Electricidad</option>
+            <option value="temperature" {% if metrica == 'temperature' %}selected{% endif %}>Temperatura</option>
+        </select>
     </label>
     <button type="submit">Filtrar</button>
+    <a class="btn-export" href="{{ url_for('dashboard.telemetry_export', metrica=metrica) }}">Exportar CSV</a>
 </form>
 
 <table class="data-table">

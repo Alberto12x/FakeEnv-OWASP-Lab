@@ -199,14 +199,15 @@ def trends():
 def telemetry():
     user = current_user()
     # Valores por defecto si no se filtra nada (rango muy amplio -> todo el histórico).
-    desde = request.args.get("desde", "2000-01-01")
-    hasta = request.args.get("hasta", "2100-01-01")
+    desde = request.args.get("desde", "01/01/2000")
+    hasta = request.args.get("hasta", "31/12/2100")
+    metrica = request.args.get("metrica", "")  # "" = todas
 
     query = Telemetry.query
     try:
-        # Si la fecha tiene un formato inválido, strptime lanza ValueError.
-        d1 = datetime.strptime(desde, "%Y-%m-%d").date()
-        d2 = datetime.strptime(hasta, "%Y-%m-%d").date()
+        # Formato dd/mm/aaaa. Si la fecha es inválida, strptime lanza ValueError.
+        d1 = datetime.strptime(desde, "%d/%m/%Y").date()
+        d2 = datetime.strptime(hasta, "%d/%m/%Y").date()
         # OJO: el filtro por usuario se aplica DENTRO del try, junto al parseo.
         query = query.filter(
             Telemetry.user_id == user.id,
@@ -219,9 +220,17 @@ def telemetry():
         # user_id— así que la consulta devuelve la telemetría de TODOS los usuarios.
         pass
 
+    # El filtro de métrica es una funcionalidad normal (se aplica siempre).
+    if metrica in ("water", "electricity", "temperature"):
+        query = query.filter(Telemetry.metric == metrica)
+
     rows = query.order_by(Telemetry.reading_date.desc()).all()
     return render_template(
-        "dashboard/telemetry.html", rows=rows, desde=desde, hasta=hasta
+        "dashboard/telemetry.html",
+        rows=rows,
+        desde=desde,
+        hasta=hasta,
+        metrica=metrica,
     )
 
 
@@ -229,15 +238,12 @@ def telemetry():
 @login_required
 def telemetry_export():
     user = current_user()
-    metric = request.args.get("metric", "water")
-    if metric not in ("water", "electricity", "temperature"):
-        abort(400, "Métrica no válida")
+    metrica = request.args.get("metrica", "")
 
-    rows = (
-        Telemetry.query.filter_by(user_id=user.id, metric=metric)
-        .order_by(Telemetry.reading_date.asc())
-        .all()
-    )
+    rows_q = Telemetry.query.filter_by(user_id=user.id)
+    if metrica in ("water", "electricity", "temperature"):
+        rows_q = rows_q.filter_by(metric=metrica)
+    rows = rows_q.order_by(Telemetry.reading_date.asc()).all()
 
     # Build the CSV in memory with the standard library (raw, no helpers).
     buffer = io.StringIO()
@@ -250,7 +256,7 @@ def telemetry_export():
         buffer.getvalue(),
         mimetype="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename=telemetria_{metric}.csv"
+            "Content-Disposition": f"attachment; filename=telemetria_{metrica or 'todas'}.csv"
         },
     )
 
