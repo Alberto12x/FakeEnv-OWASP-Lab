@@ -1,12 +1,3 @@
-"""Client dashboard routes.
-
-INTENTIONAL WEAKNESSES (educational OWASP project):
-  * `invoice_detail` reads `?id_factura=` in plain text and looks the invoice up
-    with NO ownership check -> Insecure Direct Object Reference, OWASP A01.
-  * `profile` saves the uploaded file under its original, unsanitized name with
-    no type/size validation -> unrestricted upload + path traversal.
-"""
-
 import csv
 import io
 import os
@@ -18,6 +9,7 @@ from flask import (
     flash,
     redirect,
     render_template,
+    render_template_string,
     request,
     url_for,
 )
@@ -111,8 +103,14 @@ def profile():
             user.profile_picture = filename
 
         db.session.commit()
-        flash("Perfil actualizado correctamente.", "success")
+
+        # VULNERABILIDAD SSTI: El desarrollador crea una alerta dinámica usando f-strings
+        # en lugar de pasar la variable como contexto.
+        alerta_personalizada = f"Perfil de {user.name} actualizado correctamente!"
+        flash(render_template_string(alerta_personalizada), "success")
+        
         return redirect(url_for("dashboard.profile"))
+
 
     return render_template("dashboard/profile.html", user=user)
 
@@ -238,3 +236,5 @@ def telemetry_export():
             "Content-Disposition": f"attachment; filename=telemetria_{metric}.csv"
         },
     )
+
+
