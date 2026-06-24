@@ -75,7 +75,7 @@ TFM-APP-VULNERABLE-OWASP/
 ├── docker/
 │   ├── docker-compose.yml     # Drupal 7 + MariaDB
 │   └── seed_blog.sh           # instala Drupal y crea el contenido del blog
-├── config.py                  # configuración por clases
+├── config.py                  # configuración única (lee el entorno)
 ├── run.py                     # punto de entrada
 ├── seed.py                    # puebla la BD con datos realistas
 ├── requirements.txt
@@ -177,7 +177,7 @@ El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
 
 | Variable       | Descripción                                          | Por defecto |
 |----------------|------------------------------------------------------|-------------|
-| `FLASK_CONFIG` | Perfil (`development` / `production`)                | `development` |
+| `FLASK_DEBUG`  | `1` = desarrollo (debug on) / `0` = producción (debug off) | `0` |
 | `SECRET_KEY`   | Clave de firma de sesiones                           | inseguro de ejemplo |
 | `DATABASE_URL` | Cadena de conexión; vacío = SQLite local             | SQLite |
 | `PASSWORD_SALT`| Salt global para el hash MD5 (**débil a propósito**) | `change-this-static-salt` |

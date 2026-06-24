@@ -3,12 +3,12 @@ import os
 from flask import Flask
 
 from app.extensions import db, migrate
-from config import config_map
+from config import Config
 
 
-def create_app(config_name: str = "development") -> Flask:
+def create_app() -> Flask:
     app = Flask(__name__)
-    app.config.from_object(config_map[config_name])
+    app.config.from_object(Config)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
