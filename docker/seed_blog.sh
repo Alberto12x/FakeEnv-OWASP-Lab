@@ -41,6 +41,12 @@ until php -r "new PDO('mysql:host=drupal_db;dbname=drupal','drupal','drupal');" 
     sleep 3
 done
 
+# A no-op sendmail so Drupal's welcome e-mail doesn't error out (no MTA here).
+if [ ! -x /usr/sbin/sendmail ]; then
+    printf '#!/bin/sh\nexit 0\n' > /usr/sbin/sendmail
+    chmod +x /usr/sbin/sendmail
+fi
+
 # ── 3. Install Drupal (standard profile) if not already installed ────────────
 if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
     echo "→ Instalando Drupal 7..."
@@ -48,7 +54,8 @@ if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
     chmod -R u+w sites/default 2>/dev/null || true
     rm -f sites/default/settings.php
     # --db-su lets drush create the database as root (the 'drupal' user has no
-    # privilege to CREATE DATABASE).
+    # privilege to CREATE DATABASE). '|| true' keeps a harmless non-zero exit
+    # (e.g. a mail warning) from aborting the script under 'set -e'.
     "$DRUSH" -y site-install standard \
         --db-url="mysql://drupal:drupal@drupal_db/drupal" \
         --db-su=root \
@@ -56,7 +63,13 @@ if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
         --site-name="FakeEnv Blog" \
         --account-name=admin \
         --account-pass=admin123 \
-        --account-mail=admin@fakenv.com
+        --account-mail=admin@fakenv.com || true
+fi
+
+# Make sure Drupal is actually installed before trying to seed content.
+if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
+    echo "✗ Drupal no se instaló correctamente." >&2
+    exit 1
 fi
 
 # ── 4. Categories, authors and articles ──────────────────────────────────────
@@ -76,7 +89,9 @@ function fe_term($vid, $name) {
 
 function fe_user($name, $mail, $pass) {
     if (user_load_by_name($name)) { return; }
-    user_save(drupal_anonymous_user(), array(
+    $account = new stdClass();
+    $account->is_new = TRUE;
+    user_save($account, array(
         "name" => $name, "mail" => $mail, "pass" => $pass, "status" => 1,
         "init" => $mail,
     ));
@@ -151,4 +166,8 @@ fe_article(
 echo "Contenido del blog creado correctamente.\n";
 '
 
+# ── 5. Summary ───────────────────────────────────────────────────────────────
+ARTICLES=$("$DRUSH" sql-query "SELECT COUNT(*) FROM node WHERE type='article'" 2>/dev/null | tail -1)
+echo "→ Versión de Drupal: $("$DRUSH" status 'Drupal version' --fields=drupal-version 2>/dev/null | tr -d ' ')"
+echo "→ Artículos en el blog: ${ARTICLES}"
 echo "✓ Blog Drupal listo en http://localhost:8080 (admin / admin123)"
