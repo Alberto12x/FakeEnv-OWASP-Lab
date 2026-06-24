@@ -41,12 +41,6 @@ until php -r "new PDO('mysql:host=drupal_db;dbname=drupal','drupal','drupal');" 
     sleep 3
 done
 
-# A no-op sendmail so Drupal's welcome e-mail doesn't error out (no MTA here).
-if [ ! -x /usr/sbin/sendmail ]; then
-    printf '#!/bin/sh\nexit 0\n' > /usr/sbin/sendmail
-    chmod +x /usr/sbin/sendmail
-fi
-
 # ── 3. Install Drupal (standard profile) if not already installed ────────────
 if ! "$DRUSH" status bootstrap 2>/dev/null | grep -qi "Successful"; then
     echo "→ Instalando Drupal 7..."

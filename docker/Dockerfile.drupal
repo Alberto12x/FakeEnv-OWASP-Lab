@@ -21,12 +21,14 @@ RUN set -eux; \
 RUN docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
  && docker-php-ext-install -j"$(nproc)" gd pdo_mysql mysqli
 
-# Drupal 7 requires mbstring HTTP input/output conversion to be disabled.
+# Drupal 7 needs mbstring HTTP conversion disabled. We also point sendmail at
+# /bin/true so PHP's mail() silently succeeds (there is no MTA in this lab).
 RUN { \
         echo 'mbstring.http_input = pass'; \
         echo 'mbstring.http_output = pass'; \
         echo 'mbstring.encoding_translation = Off'; \
         echo 'mbstring.func_overload = 0'; \
+        echo 'sendmail_path = /bin/true'; \
     } > /usr/local/etc/php/conf.d/drupal.ini
 
 # Clean URLs.
