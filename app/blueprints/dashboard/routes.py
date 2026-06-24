@@ -1,6 +1,7 @@
 import csv
 import io
 import os
+from datetime import datetime
 
 from flask import (
     Response,
@@ -197,36 +198,30 @@ def trends():
 @login_required
 def telemetry():
     user = current_user()
+    # Valores por defecto si no se filtra nada (rango muy amplio -> todo el histórico).
     desde = request.args.get("desde", "2000-01-01")
     hasta = request.args.get("hasta", "2100-01-01")
 
-    # VULNERABILIDAD SQLi (OWASP A03): las fechas del filtro se concatenan tal cual
-    # en el SQL, sin parametrizar. Un valor malicioso (p. ej.  2100-01-01' OR '1'='1)
-    # rompe el WHERE —incluida la restricción t.user_id— y vuelca la telemetría de
-    # TODOS los usuarios. La consulta se ejecuta cruda contra el driver.
-    sql = (
-        "SELECT u.username, t.metric, t.reading_date, t.value, t.unit "
-        "FROM telemetry t JOIN users u ON u.id = t.user_id "
-        f"WHERE t.user_id = {user.id} "
-        f"AND t.reading_date >= '{desde}' "
-        f"AND t.reading_date <= '{hasta}' "
-        "ORDER BY t.reading_date DESC"
-    )
-
-    error = None
-    rows = []
+    query = Telemetry.query
     try:
-        rows = db.session.connection().exec_driver_sql(sql).fetchall()
-    except Exception as exc:  # noqa: BLE001 — se muestra el error de SQL (info leak)
-        error = str(exc)
+        # Si la fecha tiene un formato inválido, strptime lanza ValueError.
+        d1 = datetime.strptime(desde, "%Y-%m-%d").date()
+        d2 = datetime.strptime(hasta, "%Y-%m-%d").date()
+        # OJO: el filtro por usuario se aplica DENTRO del try, junto al parseo.
+        query = query.filter(
+            Telemetry.user_id == user.id,
+            Telemetry.reading_date >= d1,
+            Telemetry.reading_date <= d2,
+        )
+    except Exception:
+        # VULN (excepción mal controlada, OWASP A01 - Broken Access Control):
+        # si la fecha es inválida, el filtro NUNCA se aplica —ni siquiera el
+        # user_id— así que la consulta devuelve la telemetría de TODOS los usuarios.
+        pass
 
+    rows = query.order_by(Telemetry.reading_date.desc()).all()
     return render_template(
-        "dashboard/telemetry.html",
-        rows=rows,
-        desde=desde,
-        hasta=hasta,
-        error=error,
-        sql=sql,
+        "dashboard/telemetry.html", rows=rows, desde=desde, hasta=hasta
     )
 
 

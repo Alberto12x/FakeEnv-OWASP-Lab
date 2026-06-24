@@ -4,7 +4,7 @@
 
 {% block dash %}
 <h1>Telemetría del hogar</h1>
-<p class="muted">Filtra tus lecturas por rango de fechas.</p>
+<p class="muted">Filtra tus lecturas por rango de fechas (formato AAAA-MM-DD).</p>
 
 <form method="GET" action="{{ url_for('dashboard.telemetry') }}" class="filter-form">
     <label>Desde
@@ -15,10 +15,6 @@
     </label>
     <button type="submit">Filtrar</button>
 </form>
-
-{% if error %}
-<div class="alert alert-error"><strong>Error SQL:</strong> {{ error }}</div>
-{% endif %}
 
 <table class="data-table">
     <thead>
@@ -33,9 +29,9 @@
     <tbody>
         {% for r in rows %}
         <tr>
-            <td>{{ r.username }}</td>
+            <td>{{ r.user.username }}</td>
             <td>{{ r.metric }}</td>
-            <td>{{ r.reading_date }}</td>
+            <td>{{ r.reading_date.strftime('%d/%m/%Y') }}</td>
             <td>{{ r.value }}</td>
             <td>{{ r.unit }}</td>
         </tr>
@@ -44,8 +40,4 @@
         {% endfor %}
     </tbody>
 </table>
-
-<p class="muted" style="margin-top:1rem; font-size:0.8rem;">
-    Consulta ejecutada: <code>{{ sql }}</code>
-</p>
 {% endblock %}
