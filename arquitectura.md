@@ -11,8 +11,9 @@ componentes y genera alarmas.
 
 ## 1. Visión general
 
-FakeEnv se compone de **tres subsistemas independientes** que se integran a
-través de una **carpeta de logs compartida** (`./logs/`), no por red:
+FakeEnv se levanta desde un **único `docker-compose.yml`** (un solo comando, una
+sola red) y se compone de **tres subsistemas**. El SIEM se integra de forma
+desacoplada: lee la **carpeta de logs compartida** (`./logs/`), no por red.
 
 1. **App FakeEnv** — Python/Flask tras nginx + gunicorn (web de clientes y panel
    de administración). BD SQLite.
@@ -100,8 +101,9 @@ Contexto añadido automáticamente: `ip`, `method`, `path`, `user_id`, `user_age
 
 ## 3. Arquitectura física (despliegue)
 
-Tres *stacks* de Docker Compose **separados** (proyectos y redes distintas),
-acoplados solo por el **bind-mount de `./logs`**:
+Un **único `docker-compose.yml`** levanta todos los servicios en la **misma red**
+con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere la
+**carpeta de logs compartida** (`./logs`, bind-mount de solo lectura), no por red.
 
 ```
 ┌────────────────────────────── HOST (Linux) ──────────────────────────────┐

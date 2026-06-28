@@ -161,41 +161,22 @@ siquiera arranca).
 
 ### Puesta en marcha
 
+El blog forma parte del **stack único** de la raíz (ver §8). Se levanta junto al
+resto y se siembra una sola vez:
+
 ```bash
-cd docker
-docker compose up -d --build          # construye la imagen (1ª vez tarda 1-2 min)
-# Espera a que Drupal arranque y siembra Drupal + el contenido del blog:
-docker compose exec drupal bash /seed/seed_blog.sh
+docker compose up -d --build                       # construye y arranca TODO
+docker compose exec drupal bash /seed/seed_blog.sh # contenido del blog (1ª vez)
 ```
 El script instala Drupal con drush (creando la BD, instalando el cliente MySQL y
-silenciando el correo) y crea categorías, autores ficticios y artículos sobre
-ahorro de agua, energía geotérmica, ventanas eficientes, etc. Al terminar imprime
-la versión de Drupal y el número de artículos.
+silenciando el correo) y crea categorías, autores ficticios y artículos. Al
+terminar imprime la versión de Drupal y el número de artículos.
 
-* Blog: **http://localhost:8080**
-* Admin de Drupal: `admin` / `admin123`
+* Blog: **http://localhost:8080** · Admin de Drupal: `admin` / `admin123`
 * El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
 
-La instalación (`settings.php` y ficheros) se guarda en el volumen `drupal_data`,
-así que **sobrevive** a reconstrucciones y reinicios. El `--build` y el seeding
-**solo hacen falta la primera vez** (o si cambias el `Dockerfile.drupal`).
-
-En el día a día, con la imagen ya construida y el contenido ya sembrado:
-
-```bash
-docker compose start     # arranca los contenedores existentes
-docker compose stop      # los para (sin borrar nada)
-# Si habías hecho `down` (borra contenedores, no los volúmenes):
-docker compose up -d     # los recrea reusando imagen y datos (sin --build)
-```
-
-Para empezar de cero (otra versión, instalación limpia) hay que borrar los
-volúmenes y volver a construir + sembrar:
-
-```bash
-docker compose down -v && docker compose up -d --build
-docker compose exec drupal bash /seed/seed_blog.sh
-```
+La instalación (`settings.php` + ficheros) vive en el volumen `drupal_data` y
+**sobrevive** a reinicios. Empezar de cero: `docker compose down -v`.
 
 ### Comprobar la versión
 
@@ -223,13 +204,23 @@ Meterpreter como `www-data` dentro del contenedor.
 
 ---
 
-## 8. SIEM (Wazuh) — recolección de logs y alarmas
+## 8. SIEM (Wazuh) y despliegue unificado
 
-Todos los componentes escriben logs en `./logs/` y un **Wazuh Manager** los
-ingiere y genera alarmas. La app va detrás de **nginx + gunicorn**
-(`docker compose up -d --build` → http://localhost:8000) y Wazuh se levanta con
-`cd siem && docker compose up -d`. Detalle completo, fuentes y cómo ver las
-alarmas en **[docs/SIEM.md](docs/SIEM.md)**.
+**Todo** (app tras nginx+gunicorn, blog Drupal+MariaDB y el SIEM) se levanta
+desde un **único `docker-compose.yml`** con un solo comando:
+
+```bash
+mkdir -p logs/app logs/nginx logs/drupal/apache logs/drupal/mariadb
+chmod 777 logs/drupal/mariadb
+docker compose run --rm web python seed.py     # BD de la app
+docker compose up -d --build                   # app:8000 · blog:8080 · wazuh
+docker compose exec drupal bash /seed/seed_blog.sh
+docker compose exec wazuh tail -f /var/ossec/logs/alerts/alerts.json
+```
+
+Todos los servicios escriben logs en `./logs/` y el **Wazuh Manager** los ingiere
+y genera alarmas (IDOR, fail-open de telemetría, fichero sensible, fuerza bruta,
+SQLi…). Detalle completo en **[docs/SIEM.md](docs/SIEM.md)**.
 
 ---
 

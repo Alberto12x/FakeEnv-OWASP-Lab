@@ -25,34 +25,31 @@ ingiere, decodifica y genera **alarmas**.
 | Blog | `logs/drupal/apache/*` | Apache del Drupal |
 | Blog (BD) | `logs/drupal/mariadb/general.log`,`error.log` | todas las queries de MariaDB |
 
-## Puesta en marcha
+## Puesta en marcha (un solo comando)
 
-### 1. App detrás de nginx (gunicorn)
+Todo se levanta desde el **único** `docker-compose.yml` de la raíz:
 
 ```bash
-python seed.py                       # crea fakenv.db (si no está)
-docker compose up -d --build         # web (gunicorn) + nginx  ->  http://localhost:8000
+# 1) preparar carpetas de logs (MariaDB necesita escritura)
+mkdir -p logs/app logs/nginx logs/drupal/apache logs/drupal/mariadb
+chmod 777 logs/drupal/mariadb
+
+# 2) BD de la app y arranque de TODO (app+nginx, blog, SIEM)
+docker compose run --rm web python seed.py
+docker compose up -d --build
+
+# 3) contenido del blog (solo la 1ª vez)
+docker compose exec drupal bash /seed/seed_blog.sh
+
+# 4) ver las alarmas en vivo
+docker compose exec wazuh tail -f /var/ossec/logs/alerts/alerts.json
 ```
-Los logs aparecen en `logs/app/` y `logs/nginx/`.
+
+- App: <http://localhost:8000> · Blog: <http://localhost:8080>
+- Parar / arrancar: `docker compose stop` / `docker compose start`.
 
 > Modo desarrollo alternativo (sin Docker): `python run.py` (sirve en :5000 y
 > también escribe en `logs/app/`).
-
-### 2. Blog Drupal con logs (opcional)
-
-```bash
-mkdir -p logs/drupal/mariadb && chmod 777 logs/drupal/mariadb   # permiso para MariaDB
-cd docker && docker compose up -d --build
-docker compose exec drupal bash /seed/seed_blog.sh              # solo la 1ª vez
-```
-
-### 3. Wazuh Manager (recolector + alarmas)
-
-```bash
-cd siem && docker compose up -d
-# ver las alarmas en vivo:
-docker compose exec wazuh.manager tail -f /var/ossec/logs/alerts/alerts.json
-```
 
 ## Generar alarmas (probar la detección)
 
@@ -79,4 +76,4 @@ Dashboard, ~3-4 GB RAM extra) se despliega el stack *single-node* oficial de
 ## Reglas a medida
 
 En `siem/config/local_rules.xml` (IDs 100100–100130). Tras editarlas:
-`cd siem && docker compose restart wazuh.manager`.
+`docker compose restart wazuh`.
