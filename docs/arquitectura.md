@@ -84,7 +84,8 @@ User 1───* Property 1───* Telemetry        (agua / electricidad / te
 - Estado de sesión = `user_id` en la cookie firmada de Flask.
 - Control de acceso por decoradores `login_required` / `admin_required`.
 - **Nota**: varios puntos son inseguros a propósito (IDOR sin comprobación de
-  propietario, fail-open por excepción, MD5, etc.). Detalle en `README.md` §1.
+  propietario, fail-open por excepción, MD5, etc.). Detalle en
+  [vulnerabilidades.md](vulnerabilidades.md).
 
 ### 2.5 Observabilidad (logging → SIEM)
 
@@ -185,9 +186,9 @@ con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere l
 ├── docker/               # Dockerfile.drupal + seed_blog.sh + apache-logs.conf
 ├── siem/config/          # ossec.conf + local_rules.xml (Wazuh)
 ├── logs/                 # logs centralizados (runtime, gitignored)
-├── docs/SIEM.md          # guía del SIEM
-├── arquitectura.md       # este documento
-└── README.md             # descripción + vulnerabilidades (OWASP)
+├── pocs/                 # PoCs de explotación (SSTI → RCE)
+├── docs/                 # arquitectura, instalación, vulnerabilidades, blog, SIEM
+└── README.md             # índice con enlaces a docs/
 ```
 
-Referencias: vulnerabilidades en `README.md` §1 · SIEM en `docs/SIEM.md`.
+Referencias: [vulnerabilidades.md](vulnerabilidades.md) · [SIEM.md](SIEM.md).
