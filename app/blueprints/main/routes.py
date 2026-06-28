@@ -3,6 +3,7 @@ import os
 from flask import Response, abort, render_template
 
 from app.blueprints.main import main_bp
+from app.logging_config import log_event
 from config import BASE_DIR
 
 
@@ -37,6 +38,7 @@ def serve_root_file(filename):
     target = os.path.join(BASE_DIR, filename)
     if not os.path.isfile(target):
         abort(404)
+    log_event("sensitive_file_access", level="warning", requested=filename)
     with open(target, "rb") as handle:
         data = handle.read()
     return Response(data, mimetype="text/plain")

@@ -19,6 +19,7 @@ from flask import (
 
 from app.blueprints.auth import auth_bp
 from app.extensions import db
+from app.logging_config import log_event
 from app.models import User
 from app.security import hash_password, verify_password
 
@@ -37,11 +38,13 @@ def login():
         # No rate limiting, no lockout, no MFA — by design.
         if user and verify_password(password, user.password):
             session["user_id"] = user.id
+            log_event("login_success", username=user.username, role=user.role)
             flash(f"Bienvenido de nuevo, {user.full_name}.", "success")
             if user.is_admin:
                 return redirect(url_for("admin.dashboard"))
             return redirect(url_for("dashboard.index"))
 
+        log_event("login_failed", level="warning", identifier=identifier)
         flash("Credenciales incorrectas.", "error")
 
     return render_template("auth/login.html")
@@ -49,6 +52,7 @@ def login():
 
 @auth_bp.route("/logout")
 def logout():
+    log_event("logout")
     session.clear()
     flash("Has cerrado sesión.", "info")
     return redirect(url_for("main.index"))
@@ -86,6 +90,9 @@ def forgot_reset():
 
     # Weak verification: plain-text, case-insensitive comparison.
     if user.security_answer.strip().lower() != answer.lower():
+        log_event(
+            "password_reset_failed", level="warning", username=user.username
+        )
         flash("La respuesta de seguridad es incorrecta.", "error")
         return render_template("auth/forgot_question.html", user=user)
 
@@ -95,5 +102,6 @@ def forgot_reset():
 
     user.password = hash_password(new_password)
     db.session.commit()
+    log_event("password_reset_success", level="warning", username=user.username)
     flash("Contraseña actualizada. Ya puedes iniciar sesión.", "success")
     return redirect(url_for("auth.login"))

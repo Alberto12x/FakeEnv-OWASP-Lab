@@ -10,6 +10,7 @@ from app.blueprints.admin import admin_bp
 from app.auth_utils import admin_required, current_user
 from app.constants import SECURITY_QUESTIONS
 from app.extensions import db
+from app.logging_config import log_event
 from app.models import Invoice, Telemetry, User
 from app.security import hash_password
 
@@ -79,6 +80,13 @@ def user_new():
         )
         db.session.add(user)
         db.session.commit()
+        log_event(
+            "admin_user_created",
+            level="warning",
+            actor=current_user().username,
+            new_user=user.username,
+            new_role=user.role,
+        )
         flash(f"Usuario «{user.username}» creado correctamente.", "success")
         return redirect(url_for("admin.users"))
 
@@ -108,6 +116,12 @@ def user_delete(user_id):
         flash("No puedes eliminar tu propia cuenta de administrador.", "error")
         return redirect(url_for("admin.users"))
 
+    log_event(
+        "admin_user_deleted",
+        level="warning",
+        actor=current_user().username,
+        deleted_user=user.username,
+    )
     db.session.delete(user)  # cascades to invoices, telemetry and properties
     db.session.commit()
     flash(f"Usuario «{user.username}» eliminado.", "success")

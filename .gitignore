@@ -24,6 +24,10 @@ fakenv.db
 app/static/uploads/profiles/*
 !app/static/uploads/profiles/.gitkeep
 
+# Logs recogidos por el SIEM (Wazuh) — se generan en runtime
+logs/
+
+
 # Flask-Migrate (keep migrations/ folder but ignore compiled)
 migrations/versions/*.pyc
 

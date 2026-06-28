@@ -18,6 +18,7 @@ from flask import (
 from app.auth_utils import current_user, login_required
 from app.blueprints.dashboard import dashboard_bp
 from app.extensions import db
+from app.logging_config import log_event
 from app.models import Invoice, Telemetry
 
 
@@ -78,6 +79,17 @@ def invoice_detail():
     if invoice is None:
         abort(404)
 
+    # Marca como acceso cruzado (IDOR) si la factura no es del usuario actual.
+    me = current_user()
+    if invoice.user_id != me.id:
+        log_event(
+            "idor_invoice_access",
+            level="warning",
+            id_factura=id_factura,
+            owner=invoice.user.username,
+            accessed_by=me.username,
+        )
+
     return render_template("dashboard/invoice_detail.html", invoice=invoice)
 
 
@@ -102,6 +114,12 @@ def profile():
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             file.save(save_path)
             user.profile_picture = filename
+            log_event(
+                "file_upload",
+                username=user.username,
+                filename=filename,
+                content_type=file.mimetype,
+            )
 
         db.session.commit()
 
@@ -214,11 +232,18 @@ def telemetry():
             Telemetry.reading_date >= d1,
             Telemetry.reading_date <= d2,
         )
-    except Exception:
+    except Exception as exc:
         # VULN (excepción mal controlada, OWASP A01 - Broken Access Control):
         # si la fecha es inválida, el filtro NUNCA se aplica —ni siquiera el
         # user_id— así que la consulta devuelve la telemetría de TODOS los usuarios.
-        pass
+        log_event(
+            "telemetry_filter_bypass",
+            level="warning",
+            username=user.username,
+            desde=desde,
+            hasta=hasta,
+            error=str(exc),
+        )
 
     # El filtro de métrica es una funcionalidad normal (se aplica siempre).
     if metrica in ("water", "electricity", "temperature"):

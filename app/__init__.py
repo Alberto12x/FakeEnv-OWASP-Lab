@@ -3,6 +3,7 @@ import os
 from flask import Flask
 
 from app.extensions import db, migrate
+from app.logging_config import configure_logging
 from config import Config
 
 
@@ -12,6 +13,7 @@ def create_app() -> Flask:
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+    configure_logging(app)
     _init_extensions(app)
     _register_blueprints(app)
     _register_context(app)

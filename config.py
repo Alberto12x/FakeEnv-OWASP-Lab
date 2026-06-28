@@ -38,3 +38,8 @@ class Config:
 
     # External Drupal 7 blog (served by docker-compose, see docker/).
     BLOG_URL = os.environ.get("BLOG_URL", "http://localhost:8080")
+
+    # Centralised log directory (consumed by the Wazuh SIEM, see wazuh/).
+    #   logs/app/fakenv.log  -> eventos de la app (peticiones, auth, seguridad)
+    #   logs/app/sql.log     -> todas las sentencias SQL (SQLAlchemy)
+    LOG_DIR = os.environ.get("LOG_DIR", os.path.join(BASE_DIR, "logs"))
