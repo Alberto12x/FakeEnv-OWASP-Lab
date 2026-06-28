@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FakEnv — Consultoría Medioambiental{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="{{ url_for('main.index') }}" class="brand">FakEnv</a>
+            <ul>
+                <li><a href="{{ url_for('main.about') }}">Nosotros</a></li>
+                <li><a href="{{ url_for('main.services') }}">Servicios</a></li>
+                <li><a href="{{ url_for('main.contact') }}">Contacto</a></li>
+                <li><a href="{{ blog_url }}" class="nav-blog">Blog</a></li>
+                {% if current_user %}
+                    <li><a href="{{ url_for('dashboard.index') }}">Mi panel</a></li>
+                    {% if current_user.is_admin %}
+                        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('auth.logout') }}">Salir</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('auth.login') }}" class="nav-login">Acceder</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 FakEnv. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

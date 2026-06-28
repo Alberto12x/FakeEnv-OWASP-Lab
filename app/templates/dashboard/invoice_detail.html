@@ -1,0 +1,37 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Factura {{ invoice.invoice_number }} — FakEnv{% endblock %}
+
+{% block dash %}
+<a href="{{ url_for('dashboard.invoices') }}" class="back-link">← Volver a mis facturas</a>
+
+<div class="invoice-sheet">
+    <header class="invoice-head">
+        <h1>Factura {{ invoice.invoice_number }}</h1>
+        <span class="badge badge-{{ invoice.status }}">{{ invoice.status }}</span>
+    </header>
+
+    <dl class="invoice-meta">
+        <dt>Titular</dt><dd>{{ invoice.user.full_name }}</dd>
+        <dt>Concepto</dt><dd>{{ invoice.concept }}</dd>
+        <dt>Periodo</dt>
+        <dd>{{ invoice.period_start.strftime('%d/%m/%Y') }} – {{ invoice.period_end.strftime('%d/%m/%Y') }}</dd>
+        <dt>Emisión</dt><dd>{{ invoice.issue_date.strftime('%d/%m/%Y') }}</dd>
+        <dt>Vencimiento</dt><dd>{{ invoice.due_date.strftime('%d/%m/%Y') }}</dd>
+    </dl>
+
+    <table class="data-table">
+        <thead>
+            <tr><th>Concepto</th><th>Consumo</th><th>Importe</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Electricidad</td><td>{{ invoice.electricity_kwh }} kWh</td><td></td></tr>
+            <tr><td>Agua</td><td>{{ invoice.water_m3 }} m³</td><td></td></tr>
+            <tr class="total-row">
+                <td colspan="2"><strong>Total</strong></td>
+                <td><strong>{{ '%.2f'|format(invoice.amount) }} €</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

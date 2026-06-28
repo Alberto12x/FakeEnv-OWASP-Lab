@@ -1,0 +1,38 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Mi perfil — FakEnv{% endblock %}
+
+{% block dash %}
+<h1>Mi perfil</h1>
+
+<div class="profile-grid">
+    <div class="profile-avatar">
+        {% if user.profile_picture %}
+            <img src="{{ url_for('static', filename='uploads/profiles/' ~ user.profile_picture) }}"
+                 alt="Foto de perfil">
+        {% else %}
+            <div class="avatar-placeholder">{{ user.name[:1] }}{{ user.surname[:1] }}</div>
+        {% endif %}
+        <p class="muted">{{ user.email }}</p>
+    </div>
+
+    <form action="{{ url_for('dashboard.profile') }}" method="POST" enctype="multipart/form-data">
+        <label for="name">Nombre</label>
+        <input type="text" id="name" name="name" value="{{ user.name }}">
+
+        <label for="surname">Apellidos</label>
+        <input type="text" id="surname" name="surname" value="{{ user.surname }}">
+
+        <label for="address">Dirección</label>
+        <input type="text" id="address" name="address" value="{{ user.address }}">
+
+        <label for="city">Ciudad</label>
+        <input type="text" id="city" name="city" value="{{ user.city }}">
+
+        <label for="profile_picture">Foto de perfil</label>
+        <input type="file" id="profile_picture" name="profile_picture">
+
+        <button type="submit">Guardar cambios</button>
+    </form>
+</div>
+{% endblock %}

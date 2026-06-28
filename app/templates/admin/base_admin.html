@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Panel Admin — FakEnv{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="admin-layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">FakEnv Admin</div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('admin.users') }}">Usuarios</a></li>
+                <li><a href="{{ url_for('admin.invoices') }}">Facturas</a></li>
+                <li><a href="{{ url_for('admin.telemetry') }}">Telemetría</a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-foot">
+            <a href="{{ url_for('main.index') }}">← Volver al sitio</a>
+            <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <div class="admin-content">
+        <header class="admin-header">
+            {% block page_title %}<h1>Panel de Administración</h1>{% endblock %}
+        </header>
+
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

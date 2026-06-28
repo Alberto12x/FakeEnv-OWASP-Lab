@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio — FakEnv{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Soluciones de ingeniería para un planeta sostenible</h1>
+    <p>FakEnv es tu socio estratégico en consultoría medioambiental. Combinamos rigor técnico
+       con visión sostenible para transformar los retos ambientales de tu organización en
+       oportunidades de valor.</p>
+    <a href="{{ url_for('main.services') }}" class="btn-primary">Descubre nuestros servicios</a>
+</section>
+
+<section class="highlights">
+    <div class="card">
+        <h2>Telemetría del hogar</h2>
+        <p>Monitoriza en tiempo real el consumo de agua, electricidad y la temperatura
+           de tu vivienda desde un único panel.</p>
+    </div>
+    <div class="card">
+        <h2>Facturación inteligente</h2>
+        <p>Consulta y descarga tus facturas de suministros y entiende cada euro de tu gasto.</p>
+    </div>
+    <div class="card">
+        <h2>Huella de Carbono</h2>
+        <p>Medición, análisis y estrategias de reducción de emisiones de CO₂.</p>
+    </div>
+</section>
+
+<section class="blog-cta">
+    <div class="blog-cta-text">
+        <h2>Aprende a vivir de forma más sostenible</h2>
+        <p>Consejos para ahorrar agua, energía geotérmica, ventanas eficientes y mucho
+           más en nuestro blog medioambiental.</p>
+    </div>
+    <a href="{{ blog_url }}" class="btn-blog">Visitar el Blog →</a>
+</section>
+{% endblock %}

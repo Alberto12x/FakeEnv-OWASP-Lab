@@ -1,0 +1,89 @@
+<!--
+  Reglas a medida para los eventos JSON de FakeEnv. Las web (nginx/Apache) y de
+  MariaDB las cubren las reglas integradas de Wazuh; aquí damos significado a los
+  eventos de aplicación y a los patrones de ataque del laboratorio.
+-->
+<group name="fakenv,">
+
+  <!-- Regla base: cualquier evento de la app (logger=fakenv) -->
+  <rule id="100100" level="3">
+    <decoded_as>json</decoded_as>
+    <field name="logger">^fakenv$</field>
+    <description>FakeEnv: evento $(event) (user_id=$(user_id), ip=$(ip))</description>
+  </rule>
+
+  <rule id="100101" level="8">
+    <if_sid>100100</if_sid>
+    <field name="event">^login_failed$</field>
+    <description>FakeEnv: login fallido para "$(identifier)" desde $(ip)</description>
+    <mitre><id>T1110</id></mitre>
+    <group>authentication_failed,</group>
+  </rule>
+
+  <rule id="100102" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100101</if_matched_sid>
+    <same_field>ip</same_field>
+    <description>FakeEnv: posible fuerza bruta (5+ fallos en 60s) desde $(ip)</description>
+    <mitre><id>T1110</id></mitre>
+    <group>authentication_failures,</group>
+  </rule>
+
+  <rule id="100103" level="5">
+    <if_sid>100100</if_sid>
+    <field name="event">^login_success$</field>
+    <description>FakeEnv: login correcto de $(username) ($(role))</description>
+    <group>authentication_success,</group>
+  </rule>
+
+  <rule id="100110" level="12">
+    <if_sid>100100</if_sid>
+    <field name="event">^idor_invoice_access$</field>
+    <description>FakeEnv IDOR: $(accessed_by) accedió a una factura ajena (id $(id_factura))</description>
+    <mitre><id>T1190</id></mitre>
+  </rule>
+
+  <rule id="100111" level="12">
+    <if_sid>100100</if_sid>
+    <field name="event">^telemetry_filter_bypass$</field>
+    <description>FakeEnv: volcado de telemetría por excepción mal controlada (user $(username))</description>
+    <mitre><id>T1190</id></mitre>
+  </rule>
+
+  <rule id="100112" level="12">
+    <if_sid>100100</if_sid>
+    <field name="event">^sensitive_file_access$</field>
+    <description>FakeEnv: acceso a fichero sensible "$(requested)" desde $(ip)</description>
+    <mitre><id>T1083</id></mitre>
+  </rule>
+
+  <rule id="100113" level="10">
+    <if_sid>100100</if_sid>
+    <field name="event">^file_upload$</field>
+    <description>FakeEnv: subida de fichero "$(filename)" por $(username)</description>
+  </rule>
+
+  <rule id="100114" level="10">
+    <if_sid>100100</if_sid>
+    <field name="event">^admin_user_created$</field>
+    <description>FakeEnv: alta de usuario $(new_user) ($(new_role)) por $(actor)</description>
+  </rule>
+
+  <rule id="100115" level="10">
+    <if_sid>100100</if_sid>
+    <field name="event">^admin_user_deleted$</field>
+    <description>FakeEnv: baja de usuario $(deleted_user) por $(actor)</description>
+  </rule>
+
+  <rule id="100116" level="7">
+    <if_sid>100100</if_sid>
+    <field name="event">^password_reset_success$</field>
+    <description>FakeEnv: reseteo de contraseña de $(username)</description>
+  </rule>
+
+  <rule id="100120" level="10">
+    <if_sid>100100</if_sid>
+    <field name="event">^unhandled_exception$</field>
+    <description>FakeEnv: excepción no controlada ($(error_type))</description>
+  </rule>
+
+</group>

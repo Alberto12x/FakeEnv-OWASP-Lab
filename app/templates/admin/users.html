@@ -1,0 +1,45 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Usuarios — FakEnv Admin{% endblock %}
+{% block page_title %}<h1>Gestión de Usuarios</h1>{% endblock %}
+
+{% block content %}
+<div class="table-toolbar">
+    <a href="{{ url_for('admin.user_new') }}" class="btn-action">+ Nuevo usuario</a>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.full_name }}</td>
+            <td>{{ u.email }}</td>
+            <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+            <td class="row-actions">
+                <a href="{{ url_for('admin.user_detail', user_id=u.id) }}">Ver</a>
+                {% if not (current_user and current_user.id == u.id) %}
+                <form action="{{ url_for('admin.user_delete', user_id=u.id) }}" method="POST"
+                      onsubmit="return confirm('¿Eliminar al usuario {{ u.username }}? Se borrarán también sus facturas, inmuebles y telemetría.');">
+                    <button type="submit" class="btn-danger">Eliminar</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay usuarios registrados todavía.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

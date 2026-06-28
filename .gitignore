@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Flask / app
+instance/
+*.sqlite3
+*.db
+fakenv.db
+
+# User-uploaded files (keep the folder, ignore its contents)
+app/static/uploads/profiles/*
+!app/static/uploads/profiles/.gitkeep
+
+# Logs recogidos por el SIEM (Wazuh) — se generan en runtime
+logs/
+
+
+# Flask-Migrate (keep migrations/ folder but ignore compiled)
+migrations/versions/*.pyc
+
+# Environment secrets — NEVER commit
+.env
+.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Formatters / linters
+.ruff
+.ruff.toml
+ruff.toml
+.flake8
+.pylintrc
+pylintrc
+setup.cfg
+pyproject.toml
