@@ -70,20 +70,20 @@ TFM-APP-VULNERABLE-OWASP/
 │   ├── extensions.py          # db, migrate
 │   ├── security.py            # hashing MD5 (inseguro a propósito)
 │   ├── auth_utils.py          # sesión + decoradores login_required/admin_required
-│   ├── models/                # User, Invoice, Telemetry
-│   ├── blueprints/
-│   │   ├── main/  auth/  dashboard/  admin/
+│   ├── logging_config.py      # logging JSON para el SIEM
+│   ├── constants.py           # preguntas de seguridad (OSINT)
+│   ├── models/                # User, Property, Invoice, Telemetry
+│   ├── blueprints/            # main/ auth/ dashboard/ admin/
 │   ├── templates/             # Jinja2 (público, auth, dashboard, admin)
 │   └── static/                # CSS, JS, uploads/
-├── docker/
-│   ├── Dockerfile.drupal      # imagen PHP 5.6 + Drupal 7.30
-│   ├── docker-compose.yml     # Drupal 7.30 + MariaDB
-│   └── seed_blog.sh           # instala Drupal y crea el contenido del blog
-├── config.py                  # configuración única (lee el entorno)
-├── run.py                     # punto de entrada
-├── seed.py                    # puebla la BD con datos realistas
+├── config.py  run.py  seed.py # configuración, entrypoint y datos de prueba
+├── docker-compose.yml         # stack ÚNICO (app+nginx, blog, SIEM)
+├── deploy/                    # Dockerfile.web (gunicorn) + nginx/
+├── docker/                    # Dockerfile.drupal + seed_blog.sh + apache-logs.conf
+├── siem/config/              # ossec.conf + local_rules.xml (Wazuh)
+├── docs/SIEM.md               # guía del SIEM
+├── arquitectura.md            # arquitectura lógica y física
 ├── requirements.txt
-├── .env.example
 └── README.md
 ```
 

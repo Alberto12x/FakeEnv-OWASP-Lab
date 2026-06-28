@@ -61,7 +61,7 @@ Con la app en `http://localhost:8000`, lanza alguno de los ataques del laborator
 | `/dashboard/invoice?id_factura=7` (factura ajena) | `100110` IDOR |
 | Telemetría con fecha inválida (`desde=hola`) | `100111` volcado por excepción |
 | Abrir `/.env` | `100112` acceso a fichero sensible |
-| `OR '1'='1` en una query (Drupalgeddon en MariaDB) | reglas web/SQL integradas + `100130` |
+| `OR '1'='1` en una query (Drupalgeddon en MariaDB) | reglas web/SQL **integradas** de Wazuh |
 
 Cada coincidencia genera una entrada en `alerts.json` con la regla, el nivel y
 los campos del evento.
@@ -75,5 +75,5 @@ Dashboard, ~3-4 GB RAM extra) se despliega el stack *single-node* oficial de
 
 ## Reglas a medida
 
-En `siem/config/local_rules.xml` (IDs 100100–100130). Tras editarlas:
+En `siem/config/local_rules.xml` (IDs 100100–100120). Tras editarlas:
 `docker compose restart wazuh`.

@@ -11,12 +11,6 @@ cryptography==42.0.8      # PyMySQL optional dependency for SSL connections
 # Environment variables
 python-dotenv==1.0.1
 
-# Forms (ready for future use)
-Flask-WTF==1.2.1
-WTForms==3.1.2
-
-# Authentication (ready for future use)
-Flask-Login==0.6.3
 Werkzeug==3.0.3
 
 # Servidor WSGI de producción (detrás de nginx)

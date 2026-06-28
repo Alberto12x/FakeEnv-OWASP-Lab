@@ -135,7 +135,7 @@ con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere l
 | app | `web` | `fakenv/web` (deploy/Dockerfile.web, gunicorn) | interno 8000 | repo en `/app` (código + `fakenv.db` + `logs`) |
 | blog | `drupal` | `fakenv/drupal7.30` (Dockerfile.drupal) | 8080→80 | `drupal_data`, `logs/drupal/apache`, `apache-logs.conf` |
 | blog | `drupal_db` | mariadb:10.6 | interno 3306 | `drupal_db_data`, `logs/drupal/mariadb` |
-| siem | `wazuh.manager` | wazuh/wazuh-manager:4.9.2 | 1514/1515/55000 | `../logs` (ro), `ossec.conf`, `local_rules.xml`, `wazuh_alerts` |
+| siem | `wazuh` | wazuh/wazuh-manager:4.9.2 | 1514/1515/55000 | `logs/` (ro), `ossec.conf`, `local_rules.xml`, `wazuh_alerts` |
 
 > Desarrollo sin Docker: `python run.py` (servidor Werkzeug en `:5000`), que
 > también escribe en `logs/app/`.
@@ -153,9 +153,10 @@ con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere l
 1. Los servicios escriben logs en `./logs/`.
 2. El Wazuh Manager los lee como `localfile` (JSON para la app, apache para
    web, mysql para MariaDB).
-3. Decoders integrados + `siem/config/local_rules.xml` (IDs 100100–100130)
+3. Decoders integrados + `siem/config/local_rules.xml` (IDs 100100–100120)
    generan **alarmas** en `alerts.json` (IDOR, fail-open de telemetría, acceso a
-   fichero sensible, fuerza bruta, SQLi, alta/baja de admin…).
+   fichero sensible, fuerza bruta, alta/baja de admin…). La SQLi de Drupal y los
+   ataques web los cubren las reglas **integradas** de Wazuh.
 
 ---
 
@@ -179,10 +180,10 @@ con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere l
 .
 ├── app/                  # paquete Flask (factory, blueprints, models, logging)
 ├── config.py  run.py  seed.py
+├── docker-compose.yml    # stack ÚNICO: app+nginx, blog y SIEM
 ├── deploy/               # Dockerfile.web (gunicorn) + nginx/
-├── docker-compose.yml    # stack APP (web + nginx)
-├── docker/               # stack BLOG (Drupal 7.30 + MariaDB)
-├── siem/                 # stack SIEM (Wazuh manager + ossec.conf + reglas)
+├── docker/               # Dockerfile.drupal + seed_blog.sh + apache-logs.conf
+├── siem/config/          # ossec.conf + local_rules.xml (Wazuh)
 ├── logs/                 # logs centralizados (runtime, gitignored)
 ├── docs/SIEM.md          # guía del SIEM
 ├── arquitectura.md       # este documento

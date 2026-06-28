@@ -86,13 +86,4 @@
     <description>FakeEnv: excepción no controlada ($(error_type))</description>
   </rule>
 
-  <!-- Patrón de SQL injection en el log SQL de la app (logger=fakenv.sql) -->
-  <rule id="100130" level="12">
-    <decoded_as>json</decoded_as>
-    <field name="logger">^fakenv.sql$</field>
-    <field name="statement">UNION SELECT|OR '1'='1|OR 1=1| information_schema</field>
-    <description>FakeEnv: patrón de SQL injection en una consulta</description>
-    <mitre><id>T1190</id></mitre>
-  </rule>
-
 </group>
