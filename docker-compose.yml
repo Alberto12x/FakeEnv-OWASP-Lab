@@ -1,0 +1,32 @@
+# Stack de la app FakeEnv: gunicorn (web) detrás de nginx (reverse proxy).
+# La web pública queda en http://localhost:8000  (nginx -> web:8000).
+# Los logs se centralizan en ./logs para que el SIEM (siem/) los ingiera.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    image: fakenv/web
+    container_name: fakenv_web
+    environment:
+      FLASK_DEBUG: "0"
+      SECRET_KEY: "86f1746da2e93d1a916ba4686a5b79e519baf6c9c628139a2cbe934f488bec1a"
+      PASSWORD_SALT: "s4l7_f4k3nv_2026"
+    volumes:
+      - .:/app                 # código + fakenv.db + ./logs compartidos con el host
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fakenv_nginx
+    depends_on:
+      - web
+    ports:
+      - "8000:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    restart: unless-stopped

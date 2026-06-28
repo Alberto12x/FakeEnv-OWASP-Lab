@@ -1,0 +1,15 @@
+# FakeEnv app servida con gunicorn (detrás de nginx).
+FROM python:3.13-slim
+
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# El código y la BD SQLite se montan por volumen (docker-compose.yml), así que
+# la imagen solo necesita las dependencias.
+COPY . .
+
+EXPOSE 8000
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "-w", "2", "run:app"]

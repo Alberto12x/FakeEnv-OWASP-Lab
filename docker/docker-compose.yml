@@ -19,8 +19,15 @@ services:
       MYSQL_DATABASE: drupal
       MYSQL_USER: drupal
       MYSQL_PASSWORD: drupal
+    # Registra TODAS las consultas (general log) y los errores en ficheros que
+    # el SIEM ingiere. Requiere: mkdir -p ../logs/drupal/mariadb && chmod 777 ...
+    command: >-
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --log-error=/var/log/mysql/error.log
     volumes:
       - drupal_db_data:/var/lib/mysql
+      - ../logs/drupal/mariadb:/var/log/mysql
     restart: unless-stopped
 
   drupal:
@@ -40,6 +47,10 @@ services:
       # Mount the whole docker/ dir (not a single file) so edits to seed_blog.sh
       # are reflected live inside the container.
       - ./:/seed:ro
+      # Logs de Apache (access/error) hacia el SIEM. El fichero de conf añade
+      # logging a fichero sin tener que reconstruir la imagen.
+      - ../logs/drupal/apache:/var/log/apache2
+      - ./apache-logs.conf:/etc/apache2/conf-enabled/zzz-fakenv-logs.conf:ro
     restart: unless-stopped
 
 volumes:

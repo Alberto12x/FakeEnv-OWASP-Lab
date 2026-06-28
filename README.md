@@ -177,8 +177,21 @@ la versión de Drupal y el número de artículos.
 * El botón **Blog** de la web pública apunta a esta instancia (`BLOG_URL`).
 
 La instalación (`settings.php` y ficheros) se guarda en el volumen `drupal_data`,
-así que **sobrevive** a reconstrucciones y reinicios. Para empezar de cero (otra
-versión, instalación limpia) hay que borrar los volúmenes:
+así que **sobrevive** a reconstrucciones y reinicios. El `--build` y el seeding
+**solo hacen falta la primera vez** (o si cambias el `Dockerfile.drupal`).
+
+En el día a día, con la imagen ya construida y el contenido ya sembrado:
+
+```bash
+docker compose start     # arranca los contenedores existentes
+docker compose stop      # los para (sin borrar nada)
+# Si habías hecho `down` (borra contenedores, no los volúmenes):
+docker compose up -d     # los recrea reusando imagen y datos (sin --build)
+```
+
+Para empezar de cero (otra versión, instalación limpia) hay que borrar los
+volúmenes y volver a construir + sembrar:
+
 ```bash
 docker compose down -v && docker compose up -d --build
 docker compose exec drupal bash /seed/seed_blog.sh
@@ -206,6 +219,17 @@ Meterpreter como `www-data` dentro del contenedor.
 | `DATABASE_URL` | Cadena de conexión; vacío = SQLite local             | SQLite |
 | `PASSWORD_SALT`| Salt global para el hash MD5 (**débil a propósito**) | `change-this-static-salt` |
 | `BLOG_URL`     | URL del blog Drupal                                  | `http://localhost:8080` |
+| `LOG_DIR`      | Carpeta de logs que ingiere el SIEM                  | `./logs` |
+
+---
+
+## 8. SIEM (Wazuh) — recolección de logs y alarmas
+
+Todos los componentes escriben logs en `./logs/` y un **Wazuh Manager** los
+ingiere y genera alarmas. La app va detrás de **nginx + gunicorn**
+(`docker compose up -d --build` → http://localhost:8000) y Wazuh se levanta con
+`cd siem && docker compose up -d`. Detalle completo, fuentes y cómo ver las
+alarmas en **[docs/SIEM.md](docs/SIEM.md)**.
 
 ---
 
