@@ -9,6 +9,8 @@
 
 services:
   # ─────────────────────────── App FakeEnv ───────────────────────────
+  # Flask + gunicorn. No publica puertos al host (solo `expose`): solo es
+  # accesible dentro de la red de Compose, y quien la atiende es nginx.
   web:
     build:
       context: .
@@ -16,28 +18,68 @@ services:
     image: fakenv/web
     container_name: fakenv_web
     environment:
+      # FLASK_DEBUG=0 desactiva el debugger de Werkzeug (consola RCE). Ponerlo
+      # a "1" reactiva esa vulnerabilidad a propósito para la demo.
       FLASK_DEBUG: "0"
       SECRET_KEY: "86f1746da2e93d1a916ba4686a5b79e519baf6c9c628139a2cbe934f488bec1a"
+      # Salt del hash MD5 (A02): fijo y compartido, débil a propósito.
       PASSWORD_SALT: "s4l7_f4k3nv_2026"
+    # Monta el repo en /app para iterar sin reconstruir la imagen; la BD SQLite
+    # vive dentro y así persiste en el host.
     volumes:
       - .:/app
     expose:
       - "8000"
+    networks:
+      - app_net
+    # Contención: aunque comprometan la app, el contenedor no puede ganar
+    # privilegios nuevos (setuid) ni agotar la RAM/PIDs del host (frena
+    # fork-bombs y memory-bombs). Se descartan todas las capabilities salvo
+    # DAC_OVERRIDE, que el proceso (root) necesita para escribir en los logs
+    # y la BD del bind-mount, que son del usuario del host (uid 1000).
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    mem_limit: 512m
+    pids_limit: 256
     restart: unless-stopped
 
+  # Proxy inverso: única puerta de entrada a la app. Publica el 80 del
+  # contenedor en el 8000 del host y reenvía a web:8000 por la red interna.
   nginx:
     image: nginx:1.27-alpine
     container_name: fakenv_nginx
     depends_on:
       - web
     ports:
-      - "8000:80"
+      - "8000:80"   # host:contenedor -> http://localhost:8000
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Logs de acceso/error de nginx al host para que los recoja el SIEM.
       - ./logs/nginx:/var/log/nginx
+    networks:
+      - app_net
+    security_opt:
+      - no-new-privileges:true
+    # nginx solo conserva las capabilities mínimas: escuchar en el 80 y bajar
+    # de root a su usuario worker. Todo lo demás se descarta.
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+    mem_limit: 128m
+    pids_limit: 128
     restart: unless-stopped
 
   # ─────────────────────────── Blog Drupal ───────────────────────────
+  # BD del blog. Sin puertos publicados: solo la alcanza el contenedor `drupal`
+  # por el nombre de servicio dentro de la red de Compose.
   drupal_db:
     image: mariadb:10.6
     container_name: fakenv_drupal_db
@@ -46,6 +88,7 @@ services:
       MYSQL_DATABASE: drupal
       MYSQL_USER: drupal
       MYSQL_PASSWORD: drupal
+    # Activa el general log y el error log para volcarlos al host (SIEM).
     command: >-
       --general-log=1
       --general-log-file=/var/log/mysql/general.log
@@ -53,8 +96,15 @@ services:
     volumes:
       - drupal_db_data:/var/lib/mysql
       - ./logs/drupal/mariadb:/var/log/mysql
+    networks:
+      - blog_net
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    pids_limit: 512
     restart: unless-stopped
 
+  # Drupal 7.30 (vulnerable). Publicado en el 8080 del host.
   drupal:
     build:
       context: ./docker
@@ -64,12 +114,20 @@ services:
     depends_on:
       - drupal_db
     ports:
-      - "8080:80"
+      - "8080:80"   # host:contenedor -> http://localhost:8080
     volumes:
       - drupal_data:/var/www/html/sites/default
       - ./docker:/seed:ro
       - ./logs/drupal/apache:/var/log/apache2
       - ./docker/apache-logs.conf:/etc/apache2/conf-enabled/zzz-fakenv-logs.conf:ro
+    # Solo en la red del blog: un Drupal comprometido (Drupalgeddon) no puede
+    # alcanzar ni la app ni el SIEM, solo su propia base de datos.
+    networks:
+      - blog_net
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 256
     restart: unless-stopped
 
   # ───────────────────── SIEM Wazuh (single-node) ─────────────────────
@@ -84,6 +142,8 @@ services:
     volumes:
       - ./siem/config/wazuh_indexer_ssl_certs/:/certificates/
       - ./siem/config/certs.yml:/config/certs.yml:ro
+    networks:
+      - siem_net
 
   wazuh_indexer:
     image: wazuh/wazuh-indexer:4.9.0
@@ -112,6 +172,14 @@ services:
       - ./siem/config/wazuh_indexer_ssl_certs/admin-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem
       - ./siem/config/wazuh_indexer/wazuh.indexer.yml:/usr/share/wazuh-indexer/opensearch.yml
       - ./siem/config/wazuh_indexer/internal_users.yml:/usr/share/wazuh-indexer/opensearch-security/internal_users.yml
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.indexer
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    pids_limit: 4096
     restart: unless-stopped
 
   wazuh:
@@ -162,6 +230,14 @@ services:
       - ./siem/config/local_rules.xml:/wazuh-config-mount/etc/rules/local_rules.xml
       # Logs de FakeEnv (app, nginx, drupal, mariadb) que ingiere el manager
       - ./logs:/var/log/fakenv:ro
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.manager
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 1024
     restart: unless-stopped
 
   wazuh_dashboard:
@@ -188,9 +264,16 @@ services:
       - ./siem/config/wazuh_dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
       - wazuh_dashboard_config:/usr/share/wazuh-dashboard/data/wazuh/config
       - wazuh_dashboard_custom:/usr/share/wazuh-dashboard/plugins/wazuh/public/assets/custom
-    links:
-      - wazuh_indexer:wazuh.indexer
-      - wazuh:wazuh.manager
+    # Aliases de red: sustituyen a los antiguos `links` y dejan que el dashboard
+    # resuelva wazuh.indexer y wazuh.manager dentro de siem_net.
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.dashboard
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 1024
     restart: unless-stopped
 
 volumes:
@@ -210,3 +293,14 @@ volumes:
   filebeat_var:
   wazuh_dashboard_config:
   wazuh_dashboard_custom:
+
+# Segmentación de red: cada capa en su propia red para limitar el movimiento
+# lateral. Un compromiso en el blog (blog_net) no puede tocar la app (app_net)
+# ni el SIEM (siem_net), porque no comparten red.
+networks:
+  app_net:
+    driver: bridge
+  blog_net:
+    driver: bridge
+  siem_net:
+    driver: bridge
