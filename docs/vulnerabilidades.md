@@ -25,5 +25,4 @@ Inicia sesión como `ana.torres` y visita
 `http://127.0.0.1:5000/dashboard/invoice?id_factura=7`: verás una factura que
 pertenece a `carlos.ruiz`, sin ninguna comprobación de propiedad.
 
-> PoC de explotación SSTI → RCE en [`pocs/08.py`](../pocs/08.py).
 > Detección de estos ataques con el SIEM en [SIEM.md](SIEM.md).
