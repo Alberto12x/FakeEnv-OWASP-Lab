@@ -27,6 +27,10 @@ app/static/uploads/profiles/*
 # Logs recogidos por el SIEM (Wazuh) — se generan en runtime
 logs/
 
+# Análisis de código (SAST/DAST) y reportes — generados en runtime
+analisis_codigo/
+reportes_semgrep/
+
 
 # Flask-Migrate (keep migrations/ folder but ignore compiled)
 migrations/versions/*.pyc

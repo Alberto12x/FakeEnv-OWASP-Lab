@@ -2,17 +2,10 @@
 #
 #   docker compose up -d --build
 #
-#   - App:   web (gunicorn) + nginx       -> http://localhost:8000
-#   - Blog:  drupal 7.30 + MariaDB        -> http://localhost:8080
-#   - SIEM:  wazuh (manager)              -> alarmas en /var/ossec/logs/alerts/alerts.json
-#
-# Integración por la carpeta compartida ./logs (que el SIEM ingiere).
-# Primer arranque (ver docs/SIEM.md):
-#   mkdir -p logs/app logs/nginx logs/drupal/apache logs/drupal/mariadb
-#   chmod 777 logs/drupal/mariadb
-#   docker compose run --rm web python seed.py        # BD de la app
-#   docker compose up -d --build
-#   docker compose exec drupal bash /seed/seed_blog.sh   # contenido del blog (1ª vez)
+#   - App:       web (gunicorn) + nginx       -> http://localhost:8000
+#   - Blog:      drupal 7.30 + MariaDB        -> http://localhost:8080
+#   - SIEM Web:  Wazuh Dashboard (HTTPS)      -> https://localhost (admin / SecretPassword123!)
+#   - SIEM Logs: wazuh (manager)              -> alarmas en /var/ossec/logs/alerts/alerts.json
 
 services:
   # ─────────────────────────── App FakeEnv ───────────────────────────
@@ -27,7 +20,7 @@ services:
       SECRET_KEY: "86f1746da2e93d1a916ba4686a5b79e519baf6c9c628139a2cbe934f488bec1a"
       PASSWORD_SALT: "s4l7_f4k3nv_2026"
     volumes:
-      - .:/app                 # código + fakenv.db + ./logs compartidos con el host
+      - .:/app
     expose:
       - "8000"
     restart: unless-stopped
@@ -79,11 +72,57 @@ services:
       - ./docker/apache-logs.conf:/etc/apache2/conf-enabled/zzz-fakenv-logs.conf:ro
     restart: unless-stopped
 
+  # ─────────────────────────── Generador de Certificados ────────────────────────────
+  wazuh_certs:
+    image: wazuh/wazuh-certs-generator:0.0.1
+    container_name: fakenv_wazuh_certs
+    environment:
+      - HTTP_PROVIDER=github
+    volumes:
+      - wazuh_certs:/certs
+      - ./siem/certs/config.yml:/config.yml:ro
+    command: -c /config.yml
+
   # ─────────────────────────── SIEM Wazuh ────────────────────────────
+  wazuh_indexer:
+    image: wazuh/wazuh-indexer:4.9.0
+    container_name: fakenv_wazuh_indexer
+    hostname: wazuh.indexer
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISCOVERY_TYPE=single-node
+      - WAZUH_INDEXER_PASSWORD=SecretPassword123!
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - wazuh_indexer_data:/usr/share/wazuh-indexer/data
+      - wazuh_certs:/usr/share/wazuh-indexer/config/certs:ro
+    ports:
+      - "9200:9200"
+    depends_on:
+      wazuh_certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k -u admin:SecretPassword123! https://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   wazuh:
-    image: wazuh/wazuh-manager:4.9.2
+    image: wazuh/wazuh-manager:4.9.0
     container_name: fakenv_wazuh
     hostname: wazuh.manager
+    environment:
+      - INDEXER_URL=https://wazuh.indexer:9200
+      - INDEXER_USER=admin
+      - INDEXER_PASSWORD=SecretPassword123!
+      - FILEBEAT_SSL_VERIFY_MODE=none
     ulimits:
       memlock:
         soft: -1
@@ -100,9 +139,44 @@ services:
       - ./siem/config/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
       - ./siem/config/local_rules.xml:/wazuh-config-mount/etc/rules/local_rules.xml:ro
       - wazuh_alerts:/var/ossec/logs/alerts
+      - wazuh_certs:/etc/filebeat/certs:ro
+    depends_on:
+      wazuh_indexer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 55000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  wazuh_dashboard:
+    image: wazuh/wazuh-dashboard:4.9.0
+    container_name: fakenv_wazuh_dashboard
+    hostname: wazuh.dashboard
+    ports:
+      - "443:5601"
+    environment:
+      - INDEXER_URL=https://wazuh.indexer:9200
+      - INDEXER_USER=admin
+      - INDEXER_PASSWORD=SecretPassword123!
+      - WAZUH_API_URL=https://wazuh.manager:55000
+      - WAZUH_API_USER=wazuh
+      - WAZUH_API_PASSWORD=SecretPassword123!
+      - DASHBOARD_USERNAME=admin
+      - DASHBOARD_PASSWORD=SecretPassword123!
+      - API_SSL_VERIFICATION_MODE=none
+      - INDEXER_SSL_VERIFICATION_MODE=none
+    volumes:
+      - wazuh_certs:/usr/share/wazuh-dashboard/config/certs:ro
+    depends_on:
+      wazuh:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   drupal_db_data:
   drupal_data:
   wazuh_alerts:
+  wazuh_certs:
+  wazuh_indexer_data:
