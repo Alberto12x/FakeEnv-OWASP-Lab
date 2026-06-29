@@ -1,11 +1,9 @@
-"""Authentication routes.
+"""Autenticación: login, logout y recuperación de cuenta.
 
-INTENTIONAL WEAKNESSES (educational OWASP project):
-  * No rate limiting and no MFA on login (OWASP A07 - Authentication Failures),
-    enabling unrestricted credential brute-forcing.
-  * Account recovery relies on a single security question whose answer is stored
-    in plain text and compared case-insensitively.
-  * Passwords are hashed with salted MD5 (see app/security.py).
+Debilidades buscadas (A07): el login no tiene rate limiting ni MFA, así que se
+puede hacer fuerza bruta sin freno; y la recuperación se apoya en una sola
+pregunta de seguridad cuya respuesta se guarda en claro y se compara sin
+distinguir mayúsculas. El hash de la contraseña es MD5 (ver app/security.py).
 """
 
 from flask import (
@@ -30,12 +28,11 @@ def login():
         identifier = request.form.get("identifier", "").strip()
         password = request.form.get("password", "")
 
-        # Accept either username or email as the identifier.
+        # Se admite indistintamente usuario o email como identificador.
         user = User.query.filter(
             (User.username == identifier) | (User.email == identifier)
         ).first()
 
-        # No rate limiting, no lockout, no MFA — by design.
         if user and verify_password(password, user.password):
             session["user_id"] = user.id
             log_event("login_success", username=user.username, role=user.role)
@@ -60,7 +57,7 @@ def logout():
 
 @auth_bp.route("/forgot", methods=["GET", "POST"])
 def forgot():
-    """Step 1: identify the account and reveal its security question."""
+    """Paso 1: localizar la cuenta y mostrar su pregunta de seguridad."""
     if request.method == "POST":
         identifier = request.form.get("identifier", "").strip()
         user = User.query.filter(
@@ -78,7 +75,7 @@ def forgot():
 
 @auth_bp.route("/forgot/reset", methods=["POST"])
 def forgot_reset():
-    """Step 2: verify the security answer and set a new password."""
+    """Paso 2: validar la respuesta de seguridad y fijar la nueva contraseña."""
     username = request.form.get("username", "").strip()
     answer = request.form.get("answer", "").strip()
     new_password = request.form.get("new_password", "")
@@ -88,7 +85,8 @@ def forgot_reset():
         flash("Cuenta no encontrada.", "error")
         return redirect(url_for("auth.forgot"))
 
-    # Weak verification: plain-text, case-insensitive comparison.
+    # Verificación débil: la respuesta se guarda en claro y se compara sin
+    # distinguir mayúsculas, así que basta adivinar el dato (suele ser público).
     if user.security_answer.strip().lower() != answer.lower():
         log_event(
             "password_reset_failed", level="warning", username=user.username

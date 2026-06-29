@@ -2,9 +2,9 @@ from app.extensions import db
 
 
 class Telemetry(db.Model):
-    """A single household sensor reading for a given day.
+    """Lectura de un sensor del hogar para un día concreto.
 
-    `metric` is one of: "water" (m³), "electricity" (kWh), "temperature" (°C).
+    `metric` es uno de: "water" (m³), "electricity" (kWh), "temperature" (°C).
     """
 
     __tablename__ = "telemetry"

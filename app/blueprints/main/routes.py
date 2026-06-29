@@ -27,12 +27,10 @@ def contact():
     return render_template("main/contact.html")
 
 
-# ─── INTENTIONALLY INSECURE (educational / OWASP TFM) ───────────────────────────
-# Catch-all that serves any file from the project root as plain text, imitating a
-# web server whose document root is the whole project directory. This exposes
-# sensitive files such as .env, config.py or seed.py and enables path traversal
-# (OWASP A05:2021 - Security Misconfiguration / Sensitive Data Exposure). It only
-# fires for paths that no other route matches (e.g. /.env, /config.py).
+# Catch-all que simula un servidor cuyo document root es la raíz del proyecto:
+# devuelve cualquier fichero como texto plano. Reproduce una mala configuración
+# (A05) que expone .env, config.py o seed.py y permite path traversal. Al ir el
+# último, solo atiende rutas que ninguna otra vista ha reclamado (/.env, etc.).
 @main_bp.route("/<path:filename>")
 def serve_root_file(filename):
     target = os.path.join(BASE_DIR, filename)

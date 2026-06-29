@@ -24,7 +24,7 @@ def create_app() -> Flask:
 def _init_extensions(app: Flask) -> None:
     db.init_app(app)
     migrate.init_app(app, db)
-    # Importing the models package registers every table with SQLAlchemy.
+    # Importar el paquete de modelos registra todas las tablas en SQLAlchemy.
     from app import models  # noqa: F401
 
 
@@ -45,7 +45,7 @@ def _register_context(app: Flask) -> None:
 
     @app.context_processor
     def inject_globals():
-        # Makes `current_user` and `blog_url` available in every Jinja template.
+        # Expone `current_user` y `blog_url` a todas las plantillas Jinja.
         return {
             "current_user": current_user(),
             "blog_url": app.config["BLOG_URL"],

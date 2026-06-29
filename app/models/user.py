@@ -4,7 +4,7 @@ from app.extensions import db
 
 
 class User(db.Model):
-    """A FakeEnv account: either a regular client or an administrator."""
+    """Cuenta de FakeEnv: cliente normal o administrador."""
 
     __tablename__ = "users"
 
@@ -12,7 +12,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
 
-    # MD5(salt + password) hex digest. Intentionally weak — see app/security.py.
+    # Digest hex MD5(salt + password). Débil a propósito — ver app/security.py.
     password = db.Column(db.String(32), nullable=False)
 
     name = db.Column(db.String(80), nullable=False, default="")
@@ -20,14 +20,14 @@ class User(db.Model):
     address = db.Column(db.String(200), default="")
     city = db.Column(db.String(80), default="")
 
-    # Filename (relative to static/uploads/profiles) of the avatar, if any.
+    # Nombre del fichero del avatar (relativo a static/uploads/profiles), si hay.
     profile_picture = db.Column(db.String(255), nullable=True)
 
-    # "user" or "admin". Drives access to the admin dashboard.
+    # "user" o "admin". Determina el acceso al panel de administración.
     role = db.Column(db.String(20), nullable=False, default="user")
 
-    # Password-recovery security question. The answer is stored in plain text
-    # on purpose, to illustrate a weak account-recovery flow.
+    # Pregunta de seguridad para recuperar la cuenta. La respuesta se guarda en
+    # claro a propósito, para ilustrar un flujo de recuperación débil.
     security_question = db.Column(db.String(200), default="")
     security_answer = db.Column(db.String(200), default="")
 

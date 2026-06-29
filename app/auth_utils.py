@@ -1,9 +1,9 @@
-"""Session helpers and access-control decorators.
+"""Sesión y control de acceso.
 
-Authentication state is kept as a bare user id in the Flask session, and access
-control is enforced only by these decorators on the view functions that opt in.
-Note that the invoice lookup in the client dashboard deliberately does NOT use
-them, which is what makes the IDOR demonstration possible.
+El estado de login es solo el id de usuario guardado en la sesión. El control
+de acceso lo imponen estos decoradores allí donde se aplican: una vista que no
+los lleve queda abierta. El detalle de factura del panel de cliente no comprueba
+la propiedad del recurso a propósito, y de ahí sale el IDOR.
 """
 
 from functools import wraps
@@ -14,7 +14,6 @@ from app.models import User
 
 
 def current_user():
-    """Return the logged-in User, or None."""
     user_id = session.get("user_id")
     if user_id is None:
         return None

@@ -69,8 +69,9 @@ def invoices():
 @dashboard_bp.route("/invoice")
 @login_required
 def invoice_detail():
-    # IDOR (OWASP A01): the invoice id arrives in plain text via the query string
-    # and is fetched directly, without verifying it belongs to the current user.
+    # IDOR (A01): el id llega por query string y se resuelve tal cual. Falta el
+    # único control que importa aquí —comprobar que la factura es del usuario—,
+    # así que cambiando id_factura se leen las de cualquiera.
     id_factura = request.args.get("id_factura", type=int)
     if id_factura is None:
         abort(400, "Falta el parámetro id_factura")
@@ -79,7 +80,7 @@ def invoice_detail():
     if invoice is None:
         abort(404)
 
-    # Marca como acceso cruzado (IDOR) si la factura no es del usuario actual.
+    # Registramos el acceso cruzado para que el SIEM lo levante como alarma.
     me = current_user()
     if invoice.user_id != me.id:
         log_event(
@@ -104,9 +105,10 @@ def profile():
         user.address = request.form.get("address", user.address).strip()
         user.city = request.form.get("city", user.city).strip()
 
-        # Raw file handling — no Flask-Uploads, no secure_filename, no type or
-        # size checks. The original filename is trusted verbatim, which allows
-        # arbitrary file types and path traversal (e.g. "../../evil.php").
+        # Subida sin red de seguridad (A04): nos fiamos del nombre original del
+        # cliente —sin secure_filename ni validar tipo/tamaño—, de modo que se
+        # admite cualquier extensión y el nombre puede salirse del directorio
+        # con un "../../" (path traversal).
         file = request.files.get("profile_picture")
         if file and file.filename:
             filename = file.filename
@@ -123,22 +125,22 @@ def profile():
 
         db.session.commit()
 
-        # VULNERABILIDAD SSTI: El desarrollador crea una alerta dinámica usando f-strings
-        # en lugar de pasar la variable como contexto.
-        alerta_personalizada = f"Perfil de {user.name} actualizado correctamente!"
-        flash(render_template_string(alerta_personalizada), "success")
-        
-        return redirect(url_for("dashboard.profile"))
+        # SSTI (A03): se mete user.name dentro de la plantilla y se renderiza con
+        # render_template_string. Como el nombre es editable por el usuario, un
+        # valor tipo {{7*7}} se evalúa en Jinja en vez de mostrarse literal.
+        alerta = f"Perfil de {user.name} actualizado correctamente!"
+        flash(render_template_string(alerta), "success")
 
+        return redirect(url_for("dashboard.profile"))
 
     return render_template("dashboard/profile.html", user=user)
 
 
 def _build_series(rows, unit, color, width=560, height=150, pad=24):
-    """Turn an ascending list of readings into SVG geometry + summary stats.
+    """Convierte una serie de lecturas (ascendente) en geometría SVG y resumen.
 
-    Everything is computed server-side (no JS charting library) so the template
-    only has to draw a <polyline> and a <polygon>.
+    Lo calculamos en el servidor para que la plantilla solo dibuje el <polyline>
+    y el <polygon>, sin depender de ninguna librería de gráficas en JS.
     """
     values = [r.value for r in rows]
     if not values:
@@ -163,7 +165,7 @@ def _build_series(rows, unit, color, width=560, height=150, pad=24):
         f"{pad + (n - 1) * step:.1f},{base_y:.1f}"
     )
 
-    # Trend: average of the most recent half vs. the older half.
+    # Tendencia: media de la mitad reciente frente a la mitad antigua.
     half = max(n // 2, 1)
     recent_avg = sum(values[-half:]) / len(values[-half:])
     prev_avg = sum(values[:half]) / len(values[:half])
@@ -216,26 +218,26 @@ def trends():
 @login_required
 def telemetry():
     user = current_user()
-    # Valores por defecto si no se filtra nada (rango muy amplio -> todo el histórico).
+    # Rango por defecto amplísimo: sin filtrar, se ve todo el histórico propio.
     desde = request.args.get("desde", "01/01/2000")
     hasta = request.args.get("hasta", "31/12/2100")
     metrica = request.args.get("metrica", "")  # "" = todas
 
     query = Telemetry.query
     try:
-        # Formato dd/mm/aaaa. Si la fecha es inválida, strptime lanza ValueError.
         d1 = datetime.strptime(desde, "%d/%m/%Y").date()
         d2 = datetime.strptime(hasta, "%d/%m/%Y").date()
-        # OJO: el filtro por usuario se aplica DENTRO del try, junto al parseo.
+        # El filtro por user_id cuelga del mismo try que el parseo de fechas:
+        # ese es el error de diseño que explotamos justo debajo.
         query = query.filter(
             Telemetry.user_id == user.id,
             Telemetry.reading_date >= d1,
             Telemetry.reading_date <= d2,
         )
     except Exception as exc:
-        # VULN (excepción mal controlada, OWASP A01 - Broken Access Control):
-        # si la fecha es inválida, el filtro NUNCA se aplica —ni siquiera el
-        # user_id— así que la consulta devuelve la telemetría de TODOS los usuarios.
+        # Fail-open (A01): una fecha mal formada rompe el strptime antes de
+        # aplicar NINGÚN filtro —tampoco el de usuario—, y la query acaba
+        # devolviendo la telemetría de todos los usuarios en lugar de fallar.
         log_event(
             "telemetry_filter_bypass",
             level="warning",
@@ -245,7 +247,7 @@ def telemetry():
             error=str(exc),
         )
 
-    # El filtro de métrica es una funcionalidad normal (se aplica siempre).
+    # El filtro de métrica sí es funcionalidad legítima y se aplica siempre.
     if metrica in ("water", "electricity", "temperature"):
         query = query.filter(Telemetry.metric == metrica)
 
@@ -270,7 +272,7 @@ def telemetry_export():
         rows_q = rows_q.filter_by(metric=metrica)
     rows = rows_q.order_by(Telemetry.reading_date.asc()).all()
 
-    # Build the CSV in memory with the standard library (raw, no helpers).
+    # CSV en memoria con la librería estándar; el export sí respeta el user_id.
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(["fecha", "metrica", "valor", "unidad"])

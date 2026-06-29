@@ -1,15 +1,14 @@
-"""Centralised JSON logging for FakeEnv.
+"""Logging JSON centralizado de FakeEnv.
 
-Writes structured (one JSON object per line) logs that the Wazuh SIEM ingests:
+Escribe logs estructurados (un objeto JSON por línea) que ingiere el SIEM Wazuh:
 
   * logs/app/fakenv.log -> peticiones HTTP, autenticación, eventos de seguridad
                            y excepciones no controladas.
   * logs/app/sql.log    -> TODAS las sentencias SQL ejecutadas (vía SQLAlchemy),
                            que es como capturamos la actividad de la BD SQLite.
 
-Use `log_event("nombre_evento", clave=valor, ...)` from anywhere to emit a
-security-relevant event; request context (ip, método, ruta, usuario) is added
-automatically by the formatter.
+Desde cualquier punto se emite un evento con `log_event("nombre", clave=valor)`;
+el formatter añade solo el contexto de la petición (ip, método, ruta, usuario).
 """
 
 import datetime
@@ -28,7 +27,7 @@ _sql_listener_registered = False
 
 
 class JsonFormatter(logging.Formatter):
-    """Render each log record as a single JSON line."""
+    """Serializa cada registro como una única línea JSON."""
 
     def format(self, record: logging.LogRecord) -> str:
         data = {
@@ -49,7 +48,7 @@ class JsonFormatter(logging.Formatter):
             except Exception:
                 data["user_id"] = None
 
-        # Structured fields attached via `extra={"fakenv": {...}}`.
+        # Campos estructurados adjuntados vía `extra={"fakenv": {...}}`.
         fields = getattr(record, "fakenv", None)
         if isinstance(fields, dict):
             data.update(fields)
@@ -148,7 +147,7 @@ def _register_exception_logging(app) -> None:
 
 
 def log_event(event: str, level: str = "info", **fields) -> None:
-    """Emit a structured security/application event to logs/app/fakenv.log."""
+    """Emite un evento estructurado de seguridad/aplicación a fakenv.log."""
     payload = {"event": event}
     payload.update(fields)
     getattr(logging.getLogger(APP_LOGGER), level)(

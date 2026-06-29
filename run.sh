@@ -16,8 +16,3 @@ docker compose up -d --build
 # 5. Poblar el blog de Drupal
 docker compose exec drupal bash /seed/seed_blog.sh
 
-# 6. Pausa de 30 segundos para estabilización inicial de Wazuh
-sleep 5
-
-# 7. Monitorizar las alertas del SIEM en tiempo real
-docker compose exec wazuh tail -f /var/ossec/logs/alerts/alerts.json
