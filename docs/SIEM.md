@@ -1,7 +1,8 @@
 # SIEM (Wazuh) — recolección de logs y alarmas
 
-FakeEnv centraliza **todos** los logs en `./logs/` y un **Wazuh Manager** los
-ingiere, decodifica y genera **alarmas**.
+FakeEnv centraliza **todos** los logs en `./logs/` y un **stack Wazuh
+single-node** (Manager + Indexer + Dashboard) los ingiere, decodifica, genera
+**alarmas** y las muestra en una **interfaz web**.
 
 ## Arquitectura
 
@@ -46,7 +47,14 @@ docker compose exec wazuh tail -f /var/ossec/logs/alerts/alerts.json
 ```
 
 - App: <http://localhost:8000> · Blog: <http://localhost:8080>
+- **Dashboard Wazuh: <https://localhost> (admin / `SecretPassword`)** — certificado
+  autofirmado, el navegador avisará; acepta y entra.
 - Parar / arrancar: `docker compose stop` / `docker compose start`.
+
+> La **primera vez**, el servicio `wazuh_certs` genera los certificados TLS en
+> `siem/config/wazuh_indexer_ssl_certs/` (sale con código 0). En arranques
+> posteriores detecta que ya existen y no los regenera. El Indexer pide ~1 GB de
+> RAM y el Dashboard tarda ~1 min en estar disponible tras el arranque.
 
 > Modo desarrollo alternativo (sin Docker): `python run.py` (sirve en :5000 y
 > también escribe en `logs/app/`).
@@ -66,14 +74,27 @@ Con la app en `http://localhost:8000`, lanza alguno de los ataques del laborator
 Cada coincidencia genera una entrada en `alerts.json` con la regla, el nivel y
 los campos del evento.
 
-## Dashboard web (opcional)
+## Dashboard web
 
-El Manager por sí solo ya recoge y alarma. Para la **UI** de Wazuh (Indexer +
-Dashboard, ~3-4 GB RAM extra) se despliega el stack *single-node* oficial de
-[wazuh-docker](https://github.com/wazuh/wazuh-docker) y se le añade nuestro
-`siem/config/ossec.conf` y `local_rules.xml`.
+La interfaz de Wazuh está integrada en el stack (basada en el *single-node*
+oficial de [wazuh-docker](https://github.com/wazuh/wazuh-docker)). Tres servicios:
 
-## Reglas a medida
+| Servicio | Imagen | Rol |
+|----------|--------|-----|
+| `wazuh` | wazuh-manager:4.9.0 | ingesta logs, decodifica, dispara reglas → `alerts.json` |
+| `wazuh_indexer` | wazuh-indexer:4.9.0 | almacena y busca las alarmas (OpenSearch) |
+| `wazuh_dashboard` | wazuh-dashboard:4.9.0 | UI web en <https://localhost> |
 
-En `siem/config/local_rules.xml` (IDs 100100–100120). Tras editarlas:
-`docker compose restart wazuh`.
+En la UI: *Threat Hunting* / *Security events* lista las alarmas; filtra por
+`rule.id: 1001*` para ver solo las de FakeEnv.
+
+## Configuración
+
+| Fichero | Contenido |
+|---------|-----------|
+| `siem/config/wazuh_cluster/wazuh_manager.conf` | config del Manager + `localfile` de cada fuente de FakeEnv (sustituye a `ossec.conf` vía `/wazuh-config-mount`) |
+| `siem/config/local_rules.xml` | reglas a medida (IDs 100100–100120) |
+| `siem/config/certs.yml` | nodos para el generador de certificados TLS |
+| `siem/config/wazuh_indexer/`, `wazuh_dashboard/` | config de OpenSearch y de la UI |
+
+Tras editar reglas o config: `docker compose restart wazuh`.

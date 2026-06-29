@@ -31,6 +31,9 @@ logs/
 analisis_codigo/
 reportes_semgrep/
 
+# Certificados TLS del SIEM (Wazuh) — se generan en runtime
+siem/config/wazuh_indexer_ssl_certs/
+
 
 # Flask-Migrate (keep migrations/ folder but ignore compiled)
 migrations/versions/*.pyc

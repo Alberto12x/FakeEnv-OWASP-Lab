@@ -1,0 +1,14 @@
+# El contexto de build de la imagen web es la raíz del repo; excluimos lo que no
+# debe entrar en la imagen (y lo que el usuario no puede ni leer, como los certs
+# del SIEM, propiedad de root, que romperían el envío del contexto).
+.git
+siem/config/wazuh_indexer_ssl_certs/
+logs/
+analisis_codigo/
+reportes_semgrep/
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+fakenv.db
