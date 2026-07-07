@@ -1,10 +1,9 @@
-"""Password hashing utilities.
+"""Hash de contraseñas.
 
-WARNING — INTENTIONALLY INSECURE.
-This module implements MD5 hashing with a single, static, application-wide salt
-on purpose, as part of an educational OWASP project (TFM). It demonstrates
-OWASP A02:2021 - Cryptographic Failures. Never reuse this in production code;
-use a memory-hard algorithm such as Argon2, scrypt or bcrypt instead.
+A propósito usamos MD5 con un salt global y estático en lugar de un algoritmo
+lento y con salt por usuario (bcrypt/Argon2). Es el caso A02 del Top 10: el
+hash es rápido de calcular y, al ser el salt común, dos contraseñas iguales
+producen el mismo digest, lo que abre la puerta a rainbow tables.
 """
 
 import hashlib
@@ -13,11 +12,9 @@ from flask import current_app
 
 
 def hash_password(password: str) -> str:
-    """Return the MD5 hex digest of (global_salt + password)."""
     salt = current_app.config["PASSWORD_SALT"]
     return hashlib.md5(f"{salt}{password}".encode("utf-8")).hexdigest()
 
 
 def verify_password(password: str, stored_hash: str) -> bool:
-    """Check a plaintext password against a stored MD5 hash."""
     return hash_password(password) == stored_hash

@@ -1,7 +1,8 @@
-"""SQLAlchemy models for FakeEnv.
+"""Modelos SQLAlchemy de FakeEnv.
 
-Importing this package registers every model with SQLAlchemy's metadata, which
-is required for `db.create_all()` and Flask-Migrate autogeneration to work.
+Importar este paquete registra todos los modelos en la metadata de SQLAlchemy,
+necesario para que funcionen `db.create_all()` y la autogeneración de migraciones
+de Flask-Migrate.
 """
 
 from app.models.user import User

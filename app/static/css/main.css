@@ -67,6 +67,7 @@ section ul li { margin-bottom: 0.4rem; }
 /* ─── Nav extras ──────────────────────────────────────────────────────────── */
 .nav-blog { font-weight: 700; color: #ffd166 !important; }
 .nav-login { color: #fff !important; font-weight: 600; }
+.nav-user { color: #fff; font-weight: 600; }
 
 /* ─── Blog CTA on landing ─────────────────────────────────────────────────── */
 .blog-cta {

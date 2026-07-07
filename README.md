@@ -17,6 +17,7 @@ un **SIEM (Wazuh)** que recoge logs de todo y genera alarmas.
 | [Vulnerabilidades (OWASP)](docs/vulnerabilidades.md) | Tabla de debilidades intencionadas y mapeo OWASP |
 | [Blog Drupal 7.30](docs/blog-drupal.md) | Despliegue y explotación (Drupalgeddon2) |
 | [SIEM (Wazuh)](docs/SIEM.md) | Recolección de logs, fuentes, reglas y alarmas |
+| [Análisis de código](docs/analisis-codigo.md) | Tipos de análisis (SAST, DAST, SCA, secretos, IaC) y para qué sirve cada uno |
 
 ## Arranque rápido (todo en Docker)
 

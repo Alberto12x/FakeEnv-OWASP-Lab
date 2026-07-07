@@ -1,15 +1,26 @@
-# FakeEnv app servida con gunicorn (detrás de nginx).
+# Aplicación Flask (FakeEnv) servida por gunicorn. No se expone directamente:
+# nginx hace de proxy inverso por delante (ver deploy/nginx/default.conf).
 FROM python:3.13-slim
 
 WORKDIR /app
+
+# Sin buffer en stdout/stderr: los logs de gunicorn salen al instante, que es
+# lo que el SIEM recoge desde los logs del contenedor.
 ENV PYTHONUNBUFFERED=1
 
+# requirements.txt se copia aparte para aprovechar la caché de capas: solo se
+# reinstalan dependencias si ese fichero cambia, no en cada cambio de código.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# El código y la BD SQLite se montan por volumen (docker-compose.yml), así que
-# la imagen solo necesita las dependencias.
+# Código y BD SQLite se montan por volumen (docker-compose.yml); este COPY es
+# el fallback para construir una imagen autónoma sin volúmenes.
 COPY . .
 
+# Puerto de gunicorn dentro de la red interna de Docker; nginx lo alcanza por el
+# nombre del servicio, no se publica al host.
 EXPOSE 8000
+
+# 2 workers escuchando en todas las interfaces del contenedor. `run:app` es el
+# objeto Flask `app` del módulo run.py (factory create_app ya invocada allí).
 CMD ["gunicorn", "-b", "0.0.0.0:8000", "-w", "2", "run:app"]

@@ -4,7 +4,7 @@ from app.extensions import db
 
 
 class Invoice(db.Model):
-    """A monthly utility bill issued to a client."""
+    """Factura mensual de suministros emitida a un cliente."""
 
     __tablename__ = "invoices"
 
@@ -19,10 +19,10 @@ class Invoice(db.Model):
     issue_date = db.Column(db.Date, default=datetime.utcnow)
     due_date = db.Column(db.Date, nullable=False)
 
-    # Billed quantities for the period.
+    # Consumos facturados del periodo.
     electricity_kwh = db.Column(db.Float, default=0.0)
     water_m3 = db.Column(db.Float, default=0.0)
-    amount = db.Column(db.Float, nullable=False, default=0.0)  # total in EUR
+    amount = db.Column(db.Float, nullable=False, default=0.0)  # total en EUR
 
     status = db.Column(db.String(20), default="pending")  # "paid" | "pending"
 

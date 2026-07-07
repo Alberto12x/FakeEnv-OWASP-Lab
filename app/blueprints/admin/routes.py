@@ -1,7 +1,8 @@
-"""Administrator dashboard routes.
+"""Panel de administración.
 
-The admin has full visibility over every account, invoice and reading on the
-platform. Access is gated by the `admin_required` decorator (role check only).
+El administrador ve todas las cuentas, facturas y lecturas. El único control de
+acceso es el decorador `admin_required`, que comprueba el rol; no hay segunda
+verificación por recurso.
 """
 
 from flask import abort, flash, redirect, render_template, request, url_for
@@ -55,7 +56,8 @@ def user_new():
                 security_questions=SECURITY_QUESTIONS,
             )
 
-        # Reject duplicates on the unique columns to avoid a DB integrity error.
+        # Rechazamos duplicados en las columnas únicas para no provocar un error
+        # de integridad en la base de datos.
         if User.query.filter(
             (User.username == username) | (User.email == email)
         ).first():
@@ -111,7 +113,7 @@ def user_delete(user_id):
     if user is None:
         abort(404)
 
-    # Don't let an admin delete the account they are currently logged in with.
+    # Evitamos que un admin borre la cuenta con la que tiene la sesión abierta.
     if current_user() and current_user().id == user.id:
         flash("No puedes eliminar tu propia cuenta de administrador.", "error")
         return redirect(url_for("admin.users"))
@@ -122,7 +124,7 @@ def user_delete(user_id):
         actor=current_user().username,
         deleted_user=user.username,
     )
-    db.session.delete(user)  # cascades to invoices, telemetry and properties
+    db.session.delete(user)  # arrastra en cascada facturas, telemetría y propiedades
     db.session.commit()
     flash(f"Usuario «{user.username}» eliminado.", "success")
     return redirect(url_for("admin.users"))

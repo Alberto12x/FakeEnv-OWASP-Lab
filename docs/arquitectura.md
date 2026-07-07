@@ -186,7 +186,6 @@ con un solo `docker compose up -d --build`. El SIEM queda desacoplado: ingiere l
 ├── docker/               # Dockerfile.drupal + seed_blog.sh + apache-logs.conf
 ├── siem/config/          # ossec.conf + local_rules.xml (Wazuh)
 ├── logs/                 # logs centralizados (runtime, gitignored)
-├── pocs/                 # PoCs de explotación (SSTI → RCE)
 ├── docs/                 # arquitectura, instalación, vulnerabilidades, blog, SIEM
 └── README.md             # índice con enlaces a docs/
 ```

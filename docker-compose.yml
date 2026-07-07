@@ -2,20 +2,15 @@
 #
 #   docker compose up -d --build
 #
-#   - App:   web (gunicorn) + nginx       -> http://localhost:8000
-#   - Blog:  drupal 7.30 + MariaDB        -> http://localhost:8080
-#   - SIEM:  wazuh (manager)              -> alarmas en /var/ossec/logs/alerts/alerts.json
-#
-# Integración por la carpeta compartida ./logs (que el SIEM ingiere).
-# Primer arranque (ver docs/SIEM.md):
-#   mkdir -p logs/app logs/nginx logs/drupal/apache logs/drupal/mariadb
-#   chmod 777 logs/drupal/mariadb
-#   docker compose run --rm web python seed.py        # BD de la app
-#   docker compose up -d --build
-#   docker compose exec drupal bash /seed/seed_blog.sh   # contenido del blog (1ª vez)
+#   - App:       web (gunicorn) + nginx       -> http://localhost:8000
+#   - Blog:      drupal 7.30 + MariaDB        -> http://localhost:8080
+#   - SIEM Web:  Wazuh Dashboard (HTTPS)      -> https://localhost (admin / SecretPassword)
+#   - SIEM Logs: wazuh.manager                -> alarmas en /var/ossec/logs/alerts/alerts.json
 
 services:
   # ─────────────────────────── App FakeEnv ───────────────────────────
+  # Flask + gunicorn. No publica puertos al host (solo `expose`): solo es
+  # accesible dentro de la red de Compose, y quien la atiende es nginx.
   web:
     build:
       context: .
@@ -23,28 +18,68 @@ services:
     image: fakenv/web
     container_name: fakenv_web
     environment:
+      # FLASK_DEBUG=0 desactiva el debugger de Werkzeug (consola RCE). Ponerlo
+      # a "1" reactiva esa vulnerabilidad a propósito para la demo.
       FLASK_DEBUG: "0"
       SECRET_KEY: "86f1746da2e93d1a916ba4686a5b79e519baf6c9c628139a2cbe934f488bec1a"
+      # Salt del hash MD5 (A02): fijo y compartido, débil a propósito.
       PASSWORD_SALT: "s4l7_f4k3nv_2026"
+    # Monta el repo en /app para iterar sin reconstruir la imagen; la BD SQLite
+    # vive dentro y así persiste en el host.
     volumes:
-      - .:/app                 # código + fakenv.db + ./logs compartidos con el host
+      - .:/app
     expose:
       - "8000"
+    networks:
+      - app_net
+    # Contención: aunque comprometan la app, el contenedor no puede ganar
+    # privilegios nuevos (setuid) ni agotar la RAM/PIDs del host (frena
+    # fork-bombs y memory-bombs). Se descartan todas las capabilities salvo
+    # DAC_OVERRIDE, que el proceso (root) necesita para escribir en los logs
+    # y la BD del bind-mount, que son del usuario del host (uid 1000).
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    mem_limit: 512m
+    pids_limit: 256
     restart: unless-stopped
 
+  # Proxy inverso: única puerta de entrada a la app. Publica el 80 del
+  # contenedor en el 8000 del host y reenvía a web:8000 por la red interna.
   nginx:
     image: nginx:1.27-alpine
     container_name: fakenv_nginx
     depends_on:
       - web
     ports:
-      - "8000:80"
+      - "8000:80"   # host:contenedor -> http://localhost:8000
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Logs de acceso/error de nginx al host para que los recoja el SIEM.
       - ./logs/nginx:/var/log/nginx
+    networks:
+      - app_net
+    security_opt:
+      - no-new-privileges:true
+    # nginx solo conserva las capabilities mínimas: escuchar en el 80 y bajar
+    # de root a su usuario worker. Todo lo demás se descarta.
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+    mem_limit: 128m
+    pids_limit: 128
     restart: unless-stopped
 
   # ─────────────────────────── Blog Drupal ───────────────────────────
+  # BD del blog. Sin puertos publicados: solo la alcanza el contenedor `drupal`
+  # por el nombre de servicio dentro de la red de Compose.
   drupal_db:
     image: mariadb:10.6
     container_name: fakenv_drupal_db
@@ -53,6 +88,7 @@ services:
       MYSQL_DATABASE: drupal
       MYSQL_USER: drupal
       MYSQL_PASSWORD: drupal
+    # Activa el general log y el error log para volcarlos al host (SIEM).
     command: >-
       --general-log=1
       --general-log-file=/var/log/mysql/general.log
@@ -60,8 +96,15 @@ services:
     volumes:
       - drupal_db_data:/var/lib/mysql
       - ./logs/drupal/mariadb:/var/log/mysql
+    networks:
+      - blog_net
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 768m
+    pids_limit: 512
     restart: unless-stopped
 
+  # Drupal 7.30 (vulnerable). Publicado en el 8080 del host.
   drupal:
     build:
       context: ./docker
@@ -71,19 +114,81 @@ services:
     depends_on:
       - drupal_db
     ports:
-      - "8080:80"
+      - "8080:80"   # host:contenedor -> http://localhost:8080
     volumes:
       - drupal_data:/var/www/html/sites/default
       - ./docker:/seed:ro
       - ./logs/drupal/apache:/var/log/apache2
       - ./docker/apache-logs.conf:/etc/apache2/conf-enabled/zzz-fakenv-logs.conf:ro
+    # Solo en la red del blog: un Drupal comprometido (Drupalgeddon) no puede
+    # alcanzar ni la app ni el SIEM, solo su propia base de datos.
+    networks:
+      - blog_net
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 256
     restart: unless-stopped
 
-  # ─────────────────────────── SIEM Wazuh ────────────────────────────
+  # ───────────────────── SIEM Wazuh (single-node) ─────────────────────
+  # Genera los certificados TLS la primera vez (sale con código 0 y los demás
+  # servicios arrancan después). Vuelca a ./siem/config/wazuh_indexer_ssl_certs.
+  wazuh_certs:
+    image: wazuh/wazuh-certs-generator:0.0.2
+    container_name: fakenv_wazuh_certs
+    hostname: wazuh-certs-generator
+    # Idempotente: si los certificados ya existen, no los regenera (exit 0).
+    entrypoint: ["sh", "-c", "if [ -f /certificates/root-ca.pem ]; then echo 'Certificados ya generados, se omite'; exit 0; fi; exec /entrypoint.sh"]
+    volumes:
+      - ./siem/config/wazuh_indexer_ssl_certs/:/certificates/
+      - ./siem/config/certs.yml:/config/certs.yml:ro
+    networks:
+      - siem_net
+
+  wazuh_indexer:
+    image: wazuh/wazuh-indexer:4.9.0
+    container_name: fakenv_wazuh_indexer
+    hostname: wazuh.indexer
+    depends_on:
+      wazuh_certs:
+        condition: service_completed_successfully
+    ports:
+      - "9200:9200"
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+      - ./siem/config/wazuh_indexer_ssl_certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.indexer-key.pem:/usr/share/wazuh-indexer/certs/wazuh.indexer.key
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.indexer.pem:/usr/share/wazuh-indexer/certs/wazuh.indexer.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/admin.pem:/usr/share/wazuh-indexer/certs/admin.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/admin-key.pem:/usr/share/wazuh-indexer/certs/admin-key.pem
+      - ./siem/config/wazuh_indexer/wazuh.indexer.yml:/usr/share/wazuh-indexer/opensearch.yml
+      - ./siem/config/wazuh_indexer/internal_users.yml:/usr/share/wazuh-indexer/opensearch-security/internal_users.yml
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.indexer
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    pids_limit: 4096
+    restart: unless-stopped
+
   wazuh:
-    image: wazuh/wazuh-manager:4.9.2
+    image: wazuh/wazuh-manager:4.9.0
     container_name: fakenv_wazuh
     hostname: wazuh.manager
+    depends_on:
+      wazuh_certs:
+        condition: service_completed_successfully
     ulimits:
       memlock:
         soft: -1
@@ -94,15 +199,108 @@ services:
     ports:
       - "1514:1514"
       - "1515:1515"
+      - "514:514/udp"
       - "55000:55000"
+    environment:
+      - INDEXER_URL=https://wazuh.indexer:9200
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=SecretPassword
+      - FILEBEAT_SSL_VERIFICATION_MODE=full
+      - SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem
+      - SSL_CERTIFICATE=/etc/ssl/filebeat.pem
+      - SSL_KEY=/etc/ssl/filebeat.key
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=MyS3cr37P450r.*-
     volumes:
+      - wazuh_api_configuration:/var/ossec/api/configuration
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_queue:/var/ossec/queue
+      - wazuh_var_multigroups:/var/ossec/var/multigroups
+      - wazuh_integrations:/var/ossec/integrations
+      - wazuh_active_response:/var/ossec/active-response/bin
+      - wazuh_agentless:/var/ossec/agentless
+      - wazuh_wodles:/var/ossec/wodles
+      - filebeat_etc:/etc/filebeat
+      - filebeat_var:/var/lib/filebeat
+      - ./siem/config/wazuh_indexer_ssl_certs/root-ca-manager.pem:/etc/ssl/root-ca.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.manager.pem:/etc/ssl/filebeat.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.manager-key.pem:/etc/ssl/filebeat.key
+      - ./siem/config/wazuh_cluster/wazuh_manager.conf:/wazuh-config-mount/etc/ossec.conf
+      - ./siem/config/local_rules.xml:/wazuh-config-mount/etc/rules/local_rules.xml
+      # Logs de FakeEnv (app, nginx, drupal, mariadb) que ingiere el manager
       - ./logs:/var/log/fakenv:ro
-      - ./siem/config/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
-      - ./siem/config/local_rules.xml:/wazuh-config-mount/etc/rules/local_rules.xml:ro
-      - wazuh_alerts:/var/ossec/logs/alerts
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.manager
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 1024
+    restart: unless-stopped
+
+  wazuh_dashboard:
+    image: wazuh/wazuh-dashboard:4.9.0
+    container_name: fakenv_wazuh_dashboard
+    hostname: wazuh.dashboard
+    depends_on:
+      - wazuh_indexer
+    ports:
+      - "443:5601"
+    environment:
+      - INDEXER_USERNAME=admin
+      - INDEXER_PASSWORD=SecretPassword
+      - WAZUH_API_URL=https://wazuh.manager
+      - DASHBOARD_USERNAME=kibanaserver
+      - DASHBOARD_PASSWORD=kibanaserver
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=MyS3cr37P450r.*-
+    volumes:
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/wazuh.dashboard-key.pem:/usr/share/wazuh-dashboard/certs/wazuh-dashboard-key.pem
+      - ./siem/config/wazuh_indexer_ssl_certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem
+      - ./siem/config/wazuh_dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+      - ./siem/config/wazuh_dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+      - wazuh_dashboard_config:/usr/share/wazuh-dashboard/data/wazuh/config
+      - wazuh_dashboard_custom:/usr/share/wazuh-dashboard/plugins/wazuh/public/assets/custom
+    # Aliases de red: sustituyen a los antiguos `links` y dejan que el dashboard
+    # resuelva wazuh.indexer y wazuh.manager dentro de siem_net.
+    networks:
+      siem_net:
+        aliases:
+          - wazuh.dashboard
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 1024
     restart: unless-stopped
 
 volumes:
   drupal_db_data:
   drupal_data:
-  wazuh_alerts:
+  wazuh_indexer_data:
+  wazuh_api_configuration:
+  wazuh_etc:
+  wazuh_logs:
+  wazuh_queue:
+  wazuh_var_multigroups:
+  wazuh_integrations:
+  wazuh_active_response:
+  wazuh_agentless:
+  wazuh_wodles:
+  filebeat_etc:
+  filebeat_var:
+  wazuh_dashboard_config:
+  wazuh_dashboard_custom:
+
+# Segmentación de red: cada capa en su propia red para limitar el movimiento
+# lateral. Un compromiso en el blog (blog_net) no puede tocar la app (app_net)
+# ni el SIEM (siem_net), porque no comparten red.
+networks:
+  app_net:
+    driver: bridge
+  blog_net:
+    driver: bridge
+  siem_net:
+    driver: bridge

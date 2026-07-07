@@ -4,14 +4,14 @@ from app.extensions import db
 
 
 class Property(db.Model):
-    """An inmueble (home, office, …) owned by a client and monitored by FakeEnv."""
+    """Inmueble (vivienda, oficina, …) de un cliente monitorizado por FakeEnv."""
 
     __tablename__ = "properties"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
 
-    alias = db.Column(db.String(80), nullable=False)  # e.g. "Vivienda habitual"
+    alias = db.Column(db.String(80), nullable=False)  # p. ej. "Vivienda habitual"
     address = db.Column(db.String(200), default="")
     city = db.Column(db.String(80), default="")
     property_type = db.Column(db.String(40), default="Vivienda")  # Vivienda | Oficina | Local

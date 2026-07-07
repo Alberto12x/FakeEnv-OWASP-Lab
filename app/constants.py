@@ -1,9 +1,9 @@
-"""Shared constants for FakeEnv.
+"""Constantes compartidas de FakeEnv.
 
-SECURITY_QUESTIONS is a deliberately weak set of account-recovery questions:
-every answer is the kind of fact an attacker can usually find with a little
-OSINT (social networks, public records, photos…). This reinforces the weak
-recovery flow demonstrated in the auth blueprint (OWASP A07).
+SECURITY_QUESTIONS es un conjunto de preguntas de recuperación débil a propósito:
+toda respuesta es el tipo de dato que un atacante suele encontrar con algo de
+OSINT (redes sociales, registros públicos, fotos…). Refuerza el flujo de
+recuperación débil del blueprint de autenticación (A07).
 """
 
 SECURITY_QUESTIONS = [

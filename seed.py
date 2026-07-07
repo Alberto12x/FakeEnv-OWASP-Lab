@@ -1,11 +1,11 @@
-"""Populate the FakeEnv database with realistic mock data.
+"""Puebla la base de datos de FakeEnv con datos de ejemplo realistas.
 
-Usage:
+Uso:
     python seed.py
 
-This drops and recreates every table, then inserts an administrator, several
-client accounts, six months of invoices each, and 30 days of daily telemetry
-(water, electricity, temperature) per client.
+Borra y recrea todas las tablas, luego inserta un administrador, varias cuentas
+de cliente, seis meses de facturas por cliente y telemetría diaria (agua, luz,
+temperatura) por inmueble.
 """
 
 import random
@@ -16,7 +16,7 @@ from app.extensions import db
 from app.models import Invoice, Property, Telemetry, User
 from app.security import hash_password
 
-random.seed(2026)  # reproducible data set
+random.seed(2026)  # datos reproducibles entre ejecuciones
 
 # username, email, password, name, surname, role, address, city, question, answer
 ACCOUNTS = [
@@ -79,15 +79,15 @@ def build_users():
 
 
 def build_invoices(user, start_counter):
-    """Six monthly invoices for the last six months."""
+    """Seis facturas mensuales para los últimos seis meses."""
     invoices = []
     today = date.today()
     for i in range(6):
-        # Month window ending roughly i months ago.
+        # Ventana mensual que termina aproximadamente hace i meses.
         period_end = today.replace(day=1) - timedelta(days=1 + i * 30)
         period_start = period_end - timedelta(days=29)
-        electricity = round(random.uniform(180, 420), 1)  # kWh / month
-        water = round(random.uniform(4.0, 12.0), 2)       # m3 / month
+        electricity = round(random.uniform(180, 420), 1)  # kWh / mes
+        water = round(random.uniform(4.0, 12.0), 2)       # m3 / mes
         amount = round(electricity * 0.15 + water * 2.10 + 8.50, 2)
         number = f"FAK-{period_end.year}-{start_counter + i:04d}"
         invoices.append(
@@ -109,23 +109,23 @@ def build_invoices(user, start_counter):
 
 
 def build_telemetry(prop, user, days=60, drift_sign=1):
-    """`days` of daily readings per metric for one property.
+    """`days` lecturas diarias por métrica para un inmueble.
 
-    Each property gets its own baseline plus a gentle drift (`drift_sign` = +1
-    rising consumption, -1 falling), so the charts show a recognisable trend
-    instead of pure noise.
+    Cada inmueble parte de su propia base y aplica una deriva suave
+    (`drift_sign` = +1 consumo creciente, -1 decreciente), para que las gráficas
+    muestren una tendencia reconocible en vez de puro ruido.
     """
     readings = []
     today = date.today()
 
-    base_water = random.uniform(0.20, 0.40)   # m³/day
-    base_elec = random.uniform(6.0, 12.0)     # kWh/day
-    # Daily fractional drift applied over the whole window (e.g. +0.4%/day).
+    base_water = random.uniform(0.20, 0.40)   # m³/día
+    base_elec = random.uniform(6.0, 12.0)     # kWh/día
+    # Deriva diaria fraccional aplicada sobre toda la ventana (p. ej. +0.4 %/día).
     drift = drift_sign * random.uniform(0.002, 0.006)
 
     for d in range(days):
         day = today - timedelta(days=d)
-        age = days - 1 - d            # 0 = oldest day, days-1 = today
+        age = days - 1 - d            # 0 = día más antiguo, days-1 = hoy
         factor = 1 + drift * age
         water = max(0.05, base_water * factor * random.uniform(0.85, 1.15))
         elec = max(1.0, base_elec * factor * random.uniform(0.85, 1.15))
@@ -150,7 +150,7 @@ def run():
 
         users = build_users()
         db.session.add_all(users)
-        db.session.flush()  # assign ids
+        db.session.flush()  # asigna los ids
 
         counter = 1
         prop_index = 0
@@ -158,9 +158,9 @@ def run():
             if user.is_admin:
                 continue
 
-            # Create this client's inmuebles and their per-property telemetry.
-            # Alternate the trend direction so the demo shows both rising and
-            # falling consumption.
+            # Creamos los inmuebles del cliente y su telemetría por inmueble.
+            # Alternamos el sentido de la tendencia para que la demo muestre
+            # consumo tanto creciente como decreciente.
             for alias, address, city, ptype, size in PROPERTIES.get(user.username, []):
                 prop = Property(
                     owner=user, alias=alias, address=address,
