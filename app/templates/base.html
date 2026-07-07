@@ -17,6 +17,7 @@
                 <li><a href="{{ url_for('main.contact') }}">Contacto</a></li>
                 <li><a href="{{ blog_url }}" class="nav-blog">Blog</a></li>
                 {% if current_user %}
+                    <li class="nav-user">Hola, {{ current_user.full_name }}</li>
                     <li><a href="{{ url_for('dashboard.index') }}">Mi panel</a></li>
                     {% if current_user.is_admin %}
                         <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
