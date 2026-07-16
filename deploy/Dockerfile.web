@@ -23,4 +23,11 @@ EXPOSE 8000
 
 # 2 workers escuchando en todas las interfaces del contenedor. `run:app` es el
 # objeto Flask `app` del módulo run.py (factory create_app ya invocada allí).
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "-w", "2", "run:app"]
+#
+# --reload es una función de DESARROLLO (recarga los workers al cambiar un .py).
+# Dejarla en una imagen de "producción" es Security Misconfiguration (A02:2025):
+# además de ser innecesaria, convierte cualquier escritura de fichero en la app
+# (p. ej. el command injection de /dashboard/cmd o el upload con path traversal,
+# ambos como root sobre el bind-mount) en ejecución de código automática y
+# persistente, sin necesidad de reiniciar. A propósito para la demo OWASP.
+CMD ["gunicorn", "--reload", "-b", "0.0.0.0:8000", "-w", "2", "run:app"]
