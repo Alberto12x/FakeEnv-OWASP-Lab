@@ -1,6 +1,7 @@
 # Vulnerabilidades (OWASP Top 10)
 
 > ## ⚠️ Aviso: aplicación deliberadamente insegura
+>
 > Laboratorio educativo para un TFM sobre el **OWASP Top 10**. Contiene
 > vulnerabilidades **a propósito**. **No la despliegues en Internet ni reutilices
 > su código en producción.** Cada punto débil está marcado en el código con un
