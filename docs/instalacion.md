@@ -16,6 +16,9 @@ docker compose exec wazuh tail -f /var/ossec/logs/alerts/alerts.json
 
 - App: <http://localhost:8000> · Blog: <http://localhost:8080>
 - Dashboard Wazuh: <https://localhost> (admin / `SecretPassword`, certificado autofirmado).
+- Los puertos se publican **solo en `127.0.0.1`**. Para atacar el laboratorio
+  desde otra máquina (p. ej. una VM Kali en una red aislada), arranca con
+  `BIND_ADDR=0.0.0.0 docker compose up -d`. **Nunca en una red pública.**
 - Parar / arrancar: `docker compose stop` / `docker compose start`.
 - Detalle del SIEM en [SIEM.md](SIEM.md), del blog en [blog-drupal.md](blog-drupal.md).
 

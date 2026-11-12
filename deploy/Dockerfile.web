@@ -27,7 +27,7 @@ EXPOSE 8000
 # --reload es una función de DESARROLLO (recarga los workers al cambiar un .py).
 # Dejarla en una imagen de "producción" es Security Misconfiguration (A02:2025):
 # además de ser innecesaria, convierte cualquier escritura de fichero en la app
-# (p. ej. el command injection de /dashboard/cmd o el upload con path traversal,
-# ambos como root sobre el bind-mount) en ejecución de código automática y
-# persistente, sin necesidad de reiniciar. A propósito para la demo OWASP.
+# (p. ej. el upload con path traversal, como root sobre el bind-mount) en
+# ejecución de código automática y persistente, sin necesidad de reiniciar.
+# A propósito para la demo OWASP.
 CMD ["gunicorn", "--reload", "-b", "0.0.0.0:8000", "-w", "2", "run:app"]
