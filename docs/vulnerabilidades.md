@@ -5,7 +5,7 @@
 > Laboratorio educativo para un TFM sobre el **OWASP Top 10**. Contiene
 > vulnerabilidades **a propósito**. **No la despliegues en Internet ni reutilices
 > su código en producción.** Cada punto débil está marcado en el código con un
-> comentario que empieza por `INTENTIONAL`/`INTENTIONALLY`.
+> comentario que indica su categoría OWASP (`A01`, `A02`, `A03`…).
 
 | Componente | Debilidad intencionada | OWASP Top 10 (2021) |
 |------------|------------------------|----------------------|
@@ -18,6 +18,7 @@
 | Foto de perfil | Subida de archivos sin `secure_filename`, sin validar tipo/tamaño | A04 / unrestricted file upload |
 | Raíz del proyecto | Cualquier archivo servible como texto (`/.env`, `/config.py`…) y path traversal | A05 – Security Misconfiguration |
 | Modo debug | Con `FLASK_DEBUG=1`, cualquier excepción muestra el depurador de Werkzeug (código fuente + consola = RCE) | A05 – Security Misconfiguration |
+| Contenedor web | gunicorn arrancado con `--reload`: cualquier escritura de un `.py` (p. ej. vía la subida de archivos con path traversal) se convierte en RCE persistente sin reiniciar | A05 – Security Misconfiguration (A02 en el Top 10 2025) |
 | Blog | Drupal 7.30 (EOL): SQLi *Drupalgeddon* (SA-CORE-2014-005) y RCE *Drupalgeddon2* (CVE-2018-7600) | A06 – Vulnerable & Outdated Components / A03 – Injection |
 
 ## Demostración rápida del IDOR
